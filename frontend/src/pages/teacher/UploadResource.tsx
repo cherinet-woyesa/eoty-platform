@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { Upload, File, FileText, Image, X, CheckCircle, AlertCircle, ArrowLeft, BookOpen, Globe, Hash, Tag, Sparkles, Link as LinkIcon, Trash2 } from 'lucide-react';
+import { Upload, File as FileIcon, FileText, Image as ImageIcon, X, CheckCircle, AlertCircle, ArrowLeft, BookOpen, Globe, Hash, Tag, Sparkles, Link as LinkIcon, Trash2 } from 'lucide-react';
 import { apiClient } from '@/services/api/apiClient';
 import { useAuth } from '@/context/AuthContext';
 import { lessonResourcesApi } from '@/services/api/lessonResources';
@@ -172,9 +172,9 @@ const UploadResource: React.FC<UploadResourceProps> = ({
       return <FileText className="h-6 w-6 text-red-500" />;
     }
     if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
-      return <Image className="h-6 w-6 text-emerald-600" />;
+      return <ImageIcon className="h-6 w-6 text-emerald-600" />;
     }
-    return <File className="h-6 w-6" style={{ color: brandColors.primaryHex }} />;
+    return <FileIcon className="h-6 w-6" style={{ color: brandColors.primaryHex }} />;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -238,7 +238,7 @@ const UploadResource: React.FC<UploadResourceProps> = ({
             const resourceId = response.data.data?.id || response.data.resource?.id || response.data.id;
             if (resourceId) {
               try {
-                await coursesApi.addResourceToLesson(parseInt(lessonId), resourceId);
+                await coursesApi.addResourceToLesson(Number(lessonId), resourceId);
               } catch (attachErr) {
                 console.error('Failed to auto-attach resource:', attachErr);
                 // Don't fail the whole upload, just warn
@@ -313,17 +313,17 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
   const content = (
     <div className={variant === 'full' ? "min-h-screen bg-gray-50 p-6 lg:p-8" : "w-full"}>
-      <div className={variant === 'full' ? "max-w-3xl mx-auto" : ""}>
+      <div className={variant === 'full' ? "max-w-4xl mx-auto" : ""}>
         {/* Header - Only show in full variant */}
         {variant === 'full' && (
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Upload Resource</h1>
-              <p className="text-gray-500 mt-1">Add new materials to your library</p>
+              <h1 className="text-3xl font-bold text-gray-900">Upload Resource</h1>
+              <p className="text-gray-500 mt-2 text-lg">Add new materials to your library or attach directly to lessons</p>
             </div>
             <Link
               to="/teacher/resources"
-              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
             >
               <X className="h-6 w-6" />
             </Link>
@@ -332,17 +332,17 @@ const UploadResource: React.FC<UploadResourceProps> = ({
 
         {/* Main Form Card */}
         <div className={`${variant === 'full' ? 'bg-white rounded-2xl border border-gray-200 shadow-sm' : 'bg-white rounded-xl border border-gray-200'} overflow-hidden`}>
-          <div className={variant === 'full' ? "p-8" : "p-4"}>
+          <div className={variant === 'full' ? "p-8" : "p-6"}>
             
             {/* Target Toggle - Only if lessonId is present */}
             {lessonId && (
-              <div className="flex p-1 bg-gray-100 rounded-lg mb-8">
+              <div className="flex p-1.5 bg-gray-100 rounded-xl mb-8">
                 <button
                   type="button"
                   onClick={() => setActiveTarget('library')}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
                     activeTarget === 'library'
-                      ? 'bg-white shadow-sm'
+                      ? 'bg-white shadow-sm text-gray-900'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                   style={activeTarget === 'library' ? { color: brandColors.primaryHex } : {}}
@@ -353,9 +353,9 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                 <button
                   type="button"
                   onClick={() => setActiveTarget('lesson')}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all flex items-center justify-center gap-2 ${
                     activeTarget === 'lesson'
-                      ? 'bg-white shadow-sm'
+                      ? 'bg-white shadow-sm text-gray-900'
                       : 'text-gray-500 hover:text-gray-700'
                   }`}
                   style={activeTarget === 'lesson' ? { color: brandColors.primaryHex } : {}}
@@ -369,25 +369,27 @@ const UploadResource: React.FC<UploadResourceProps> = ({
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* File Upload Area */}
               <div>
+                <label className="block text-sm font-bold text-gray-900 mb-3">
+                  Resource File <span className="text-red-500">*</span>
+                </label>
                 {!file ? (
                   <label className="block group cursor-pointer">
                     <div
-                      className="border-2 border-dashed border-gray-300 rounded-xl p-10 text-center transition-all duration-200"
+                      className="border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center transition-all duration-300 bg-gray-50/50"
                       style={{
                         ':hover': {
                           borderColor: brandColors.primaryHex,
-                          backgroundColor: `${brandColors.primaryHex}0D` // 0.05 opacity
+                          backgroundColor: `${brandColors.primaryHex}08`
                         }
                       } as any}
                     >
                       <div
-                        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform"
-                        style={{ backgroundColor: `${brandColors.primaryHex}0D`, color: brandColors.primaryHex }}
+                        className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-sm border border-gray-100 bg-white"
                       >
-                        <Upload className="h-8 w-8" />
+                        <Upload className="h-8 w-8" style={{ color: brandColors.primaryHex }} />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Click to upload or drag and drop</h3>
-                      <p className="text-gray-500 text-sm max-w-xs mx-auto">
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">Click to upload or drag and drop</h3>
+                      <p className="text-gray-500 text-sm max-w-sm mx-auto leading-relaxed">
                         Support for PDF, DOC, Images, Audio and Video files (Max 100MB)
                       </p>
                     </div>
@@ -399,164 +401,208 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                     />
                   </label>
                 ) : (
-                  <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-lg border border-gray-200 flex items-center justify-center shadow-sm">
+                  <div className="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm flex items-center justify-between group hover:border-brand-primary/30 transition-colors">
+                    <div className="flex items-center gap-5">
+                      <div className="w-16 h-16 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-center shadow-sm">
                         {getFileIcon(file.name)}
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900 truncate max-w-[200px] sm:max-w-xs">{file.name}</h3>
-                        <p className="text-xs text-gray-500">
+                        <h3 className="font-bold text-gray-900 truncate max-w-[200px] sm:max-w-md text-lg">{file.name}</h3>
+                        <p className="text-sm text-gray-500 font-medium mt-1">
                           {(file.size / 1024 / 1024).toFixed(2)} MB
                         </p>
                       </div>
                     </div>
-                    {compressionMessage && (
-                      <div className="text-xs text-emerald-600 mr-3">{compressionMessage}</div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => setFile(null)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
+                    <div className="flex items-center gap-4">
+                      {compressionMessage && (
+                        <div className="text-sm font-medium text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                          {compressionMessage}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setFile(null)}
+                        className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                        title="Remove file"
+                      >
+                        <Trash2 className="h-5 w-5" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
 
+              <div className="h-px bg-gray-100" />
+
               {/* Form Fields */}
-              <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-8">
                 {activeTarget === 'library' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Title <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
-                      style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                      placeholder="e.g., Introduction to Liturgy"
-                      required
-                    />
+                  <div className="space-y-6">
+                    <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                      <FileText className="h-5 w-5 text-gray-400" />
+                      Resource Details
+                    </h3>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Title <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={title}
+                          onChange={(e) => setTitle(e.target.value)}
+                          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all text-gray-900 placeholder-gray-400"
+                          style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                          placeholder="e.g., Introduction to Liturgy"
+                          required
+                        />
+                      </div>
+
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Description
+                        </label>
+                        <textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          rows={3}
+                          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all resize-none text-gray-900 placeholder-gray-400"
+                          style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                          placeholder="Briefly describe this resource..."
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Category <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                            style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                            required
+                          >
+                            <option value="">Select category...</option>
+                            <option value="bible">Bible Study</option>
+                            <option value="theology">Theology</option>
+                            <option value="history">History</option>
+                            <option value="liturgy">Liturgy</option>
+                            <option value="spiritual">Spiritual Growth</option>
+                            <option value="education">Education</option>
+                            <option value="other">Other</option>
+                          </select>
+                          <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description
-                  </label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all resize-none"
-                    style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                    placeholder="Briefly describe this resource..."
-                  />
-                </div>
-
                 {activeTarget === 'library' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {!lockScope && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Scope
-                      </label>
-                      <select
-                        value={resourceScope}
-                        onChange={(e) => {
-                          const newScope = e.target.value as 'chapter_wide' | 'platform_wide' | 'course_specific';
-                          setResourceScope(newScope);
-                          if (newScope === 'course_specific') {
-                            loadCourses();
-                          }
-                        }}
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
-                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                      >
-                        <option value="chapter_wide">Chapter Library</option>
-                        {isAdmin && <option value="platform_wide">Platform Library</option>}
-                        <option value="course_specific">Course Specific</option>
-                      </select>
-                    </div>
-                    )}
+                  <>
+                    <div className="h-px bg-gray-100" />
+                    
+                    <div className="space-y-6">
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <Globe className="h-5 w-5 text-gray-400" />
+                        Visibility & Scope
+                      </h3>
 
-                    {resourceScope === 'course_specific' && !lockScope && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Select Course <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                          value={selectedCourse}
-                          onChange={(e) => setSelectedCourse(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
-                          style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                        >
-                          <option value="">Choose a course...</option>
-                          {courses.map((course) => (
-                            <option key={course.id} value={course.id}>
-                              {course.title}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-
-                    {resourceScope === 'course_specific' && lockScope && selectedCourse && (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Destination
-                        </label>
-                        <div className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-gray-700">
-                          Uploading to this course
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {!lockScope && (
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Sharing Scope
+                          </label>
+                          <div className="relative">
+                            <select
+                              value={resourceScope}
+                              onChange={(e) => {
+                                const newScope = e.target.value as 'chapter_wide' | 'platform_wide' | 'course_specific';
+                                setResourceScope(newScope);
+                                if (newScope === 'course_specific') {
+                                  loadCourses();
+                                }
+                              }}
+                              className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                              style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                            >
+                              <option value="chapter_wide">Chapter Library</option>
+                              {isAdmin && <option value="platform_wide">Platform Library</option>}
+                              <option value="course_specific">Course Specific</option>
+                            </select>
+                            <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                          </div>
                         </div>
-                        {variant === 'embedded' && (
-                          <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
-                            <input
-                              id="compress-images"
-                              type="checkbox"
-                              checked={enableImageCompression}
-                              onChange={(e) => setEnableImageCompression(e.target.checked)}
-                            />
-                            <label htmlFor="compress-images">Compress images before upload</label>
+                        )}
+
+                        {resourceScope === 'course_specific' && !lockScope && (
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Select Course <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                              <select
+                                value={selectedCourse}
+                                onChange={(e) => setSelectedCourse(e.target.value)}
+                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                                style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
+                              >
+                                <option value="">Choose a course...</option>
+                                {courses.map((course) => (
+                                  <option key={course.id} value={course.id}>
+                                    {course.title}
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none text-gray-500">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {resourceScope === 'course_specific' && lockScope && selectedCourse && (
+                          <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                              Destination
+                            </label>
+                            <div className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-medium flex items-center gap-2">
+                              <CheckCircle className="h-4 w-4 text-emerald-500" />
+                              Uploading to current course
+                            </div>
+                            {variant === 'embedded' && (
+                              <div className="mt-3 flex items-center gap-2 text-sm text-gray-600 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                <input
+                                  id="compress-images"
+                                  type="checkbox"
+                                  checked={enableImageCompression}
+                                  onChange={(e) => setEnableImageCompression(e.target.checked)}
+                                  className="rounded border-gray-300 text-brand-primary focus:ring-brand-primary"
+                                />
+                                <label htmlFor="compress-images" className="font-medium cursor-pointer">Compress images before upload</label>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
-                    )}
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Category <span className="text-red-500">*</span>
-                      </label>
-                      <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:border-transparent outline-none transition-all"
-                        style={{ '--tw-ring-color': brandColors.primaryHex } as React.CSSProperties}
-                        required
-                      >
-                        <option value="">Select category...</option>
-                        <option value="bible">Bible Study</option>
-                        <option value="theology">Theology</option>
-                        <option value="history">History</option>
-                        <option value="liturgy">Liturgy</option>
-                        <option value="spiritual">Spiritual Growth</option>
-                        <option value="education">Education</option>
-                        <option value="other">Other</option>
-                      </select>
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
 
               {/* Error Message */}
               {error && (
-                <div className="flex items-center gap-3 p-4 bg-red-50 text-red-700 rounded-lg text-sm">
+                <div className="flex items-center gap-3 p-4 bg-red-50 text-red-700 rounded-xl text-sm border border-red-100">
                   <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <p>{error}</p>
+                  <p className="font-medium">{error}</p>
                 </div>
               )}
 
@@ -565,17 +611,17 @@ const UploadResource: React.FC<UploadResourceProps> = ({
                 <button
                   type="submit"
                   disabled={loading || !file || (activeTarget === 'library' && !title.trim())}
-                  className="w-full flex items-center justify-center px-6 py-3 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full flex items-center justify-center px-8 py-4 text-white font-bold text-lg rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-md"
                   style={{ backgroundColor: brandColors.primaryHex }}
                 >
                   {loading ? (
                     <>
-                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"></div>
-                      Uploading...
+                      <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin mr-3"></div>
+                      Uploading Resource...
                     </>
                   ) : (
                     <>
-                      <Upload className="h-5 w-5 mr-2" />
+                      <Upload className="h-6 w-6 mr-2" />
                       Upload Resource
                     </>
                   )}

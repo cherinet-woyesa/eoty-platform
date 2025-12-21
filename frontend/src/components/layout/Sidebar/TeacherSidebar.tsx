@@ -144,7 +144,7 @@ const TeacherSidebar: React.FC<TeacherSidebarProps> = ({
                     ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
                   }`}
-                title={isCollapsed ? item.description : undefined}
+                title={isCollapsed ? t(item.description) : undefined}
               >
                 <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${active ? 'bg-brand-primary/20' : 'bg-white/80 group-hover:bg-white'
                   } transition-all duration-200 shadow-sm`}>

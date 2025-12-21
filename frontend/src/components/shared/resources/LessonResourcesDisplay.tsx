@@ -26,7 +26,7 @@ const formatFileSize = (bytes: number): string => {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
 };
 
-export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
+const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
   lessonId,
   canManage = false
 }) => {
@@ -165,7 +165,7 @@ export const LessonResourcesDisplay: React.FC<LessonResourcesDisplayProps> = ({
               <div className="flex items-center gap-2 text-xs text-gray-500 mb-4">
                 <span>{resource.file_type.toUpperCase()}</span>
                 <span>•</span>
-                <span>{formatFileSize(resource.file_size || 0)}</span>
+                <span>{formatFileSize(Number(resource.file_size) || 0)}</span>
               </div>
 
               <div className="mt-auto flex gap-2">

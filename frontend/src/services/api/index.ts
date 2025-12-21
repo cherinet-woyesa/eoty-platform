@@ -246,6 +246,12 @@ export const coursesApi = {
     return response.data;
   },
 
+  // Attach existing resource to lesson
+  addResourceToLesson: async (lessonId: number, resourceId: string) => {
+    const response = await apiClient.post(`/courses/lessons/${lessonId}/resources/attach`, { resourceId });
+    return response.data;
+  },
+
   // Get single course
   getCourse: async (courseId: string) => {
     const response = await apiClient.get(`/courses/${courseId}`);

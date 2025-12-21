@@ -505,6 +505,17 @@ router.post(
 );
 
 /**
+ * POST /api/courses/lessons/:lessonId/resources/attach
+ * Attach an existing library resource to a lesson
+ * Accessible by: teachers (course owner), admins
+ */
+router.post(
+  '/lessons/:lessonId/resources/attach',
+  requirePermission('lesson:edit'),
+  resourceController.attachResource
+);
+
+/**
  * GET /api/courses/lessons/:lessonId/resources/:resourceId/download
  * Generate download URL for a resource
  * Accessible by: students (enrolled), teachers (course owner), admins

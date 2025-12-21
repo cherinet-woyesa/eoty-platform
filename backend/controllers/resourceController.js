@@ -37,6 +37,48 @@ const resourceController = {
   },
 
   /**
+   * POST /api/courses/lessons/:lessonId/resources/attach
+   * Attach an existing library resource to a lesson
+   */
+  async attachResource(req, res) {
+    try {
+      const { lessonId } = req.params;
+      const { resourceId } = req.body;
+      const userId = req.user.userId;
+      const db = require('../config/database');
+
+      // Check if resource exists in library
+      const resource = await db('resources').where({ id: resourceId }).first();
+      
+      if (!resource) {
+        return res.status(404).json({ success: false, message: 'Resource not found' });
+      }
+
+      // Create entry in lesson_resources
+      const [newResource] = await db('lesson_resources').insert({
+        lesson_id: lessonId,
+        filename: resource.filename || resource.title,
+        original_filename: resource.original_filename || resource.title,
+        file_type: resource.file_type,
+        file_size: resource.file_size,
+        file_url: resource.file_url || resource.url,
+        description: resource.description,
+        created_by: userId,
+        created_at: new Date(),
+        updated_at: new Date()
+      }).returning('*');
+
+      res.json({
+        success: true,
+        data: newResource
+      });
+    } catch (error) {
+      console.error('Attach resource error:', error);
+      res.status(500).json({ success: false, message: error.message });
+    }
+  },
+
+  /**
    * POST /api/courses/lessons/:lessonId/resources
    * Upload a resource file (instructor only)
    */

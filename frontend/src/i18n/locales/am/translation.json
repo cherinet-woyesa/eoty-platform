@@ -2796,6 +2796,8 @@
       "visible_to_chapter": "ለጋራ ትምህርት ለሁሉም የምዕራፍ አባላት ይታያል",
       "visible_to_you": "ለግል ማሰላሰል ለእርስዎ ብቻ ይታያል",
       "saving": "በማስቀመጥ ላይ...",
+      "save_note": "ማስታወሻ አስቀምጥ",
+      "cancel": "ሰርዝ",
       "enter_url": "URL ያስገቡ:"
     },
     "viewer": {

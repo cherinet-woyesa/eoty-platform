@@ -142,7 +142,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                     ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
                     : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
                 }`}
-                title={isCollapsed ? item.description : undefined}
+                title={isCollapsed ? t(item.description) : undefined}
               >
                 <div className={`flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-lg ${
                   active ? 'bg-brand-primary/15' : 'bg-white'
@@ -201,7 +201,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                           ? 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20'
                           : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
                       }`}
-                      title={isCollapsed ? item.description : undefined}
+                      title={isCollapsed ? t(item.description) : undefined}
                     >
                       <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                         active ? 'bg-brand-primary/15' : 'bg-slate-100 group-hover:bg-slate-200'
@@ -238,7 +238,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({
                   ? 'bg-brand-primary/10 text-brand-primary shadow-sm border border-brand-primary/20'
                   : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm'
               }`}
-              title={isCollapsed ? systemConfigItem.description : undefined}
+              title={isCollapsed ? t(systemConfigItem.description) : undefined}
             >
               <div className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg ${
                 location.pathname.startsWith('/admin/config') ? 'bg-brand-primary/15' : 'bg-white'
