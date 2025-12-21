@@ -1190,81 +1190,18 @@ export class VideoCompositor {
         }
         
         // CRITICAL: For screen sources, ALWAYS fill the entire layout space completely
-        // Use zoom + stretch to ensure no black/white spaces
+        // Use "cover" strategy (like window recording) to fill space and crop if needed - NO BLACK BARS
         // For camera sources, use normal drawImage (which will respect aspect ratio from layout)
         if (sourceId === 'screen') {
-          // Screen: Use contain for screen-only (show whole screen), cover elsewhere (PiP/presentation)
+          // Screen: Use "fill" mode - stretch to fill entire space (like window recording)
+          // This ensures no black bars AND no cropping, at the cost of aspect ratio distortion
           if (video.videoWidth > 0 && video.videoHeight > 0) {
-            const sourceAspect = video.videoWidth / video.videoHeight;
-            const targetAspect = layout.width / layout.height;
-            // NEW: Smart "Fit" strategy for screen sharing (No Blur)
-            // This ensures whole content is visible (no cropping) with clean black bars
-            const needsLetterboxing = Math.abs(sourceAspect - targetAspect) > 0.01;
-            
-            if (needsLetterboxing) {
-              // 1. Draw Blurred Background (Fill space)
-              this.ctx.save();
-              this.ctx.beginPath();
-              this.ctx.rect(layout.x, layout.y, layout.width, layout.height);
-              this.ctx.clip();
-              
-              // Apply blur and darken
-              this.ctx.filter = 'blur(40px) brightness(0.6)';
-              
-              // Calculate cover dimensions for background
-              let coverW = layout.width;
-              let coverH = layout.height;
-              let coverX = layout.x;
-              let coverY = layout.y;
-              
-              if (sourceAspect > targetAspect) {
-                 // Source is wider, fit height, crop width
-                 coverW = layout.height * sourceAspect;
-                 coverX = layout.x + (layout.width - coverW) / 2;
-              } else {
-                 // Source is taller, fit width, crop height
-                 coverH = layout.width / sourceAspect;
-                 coverY = layout.y + (layout.height - coverH) / 2;
-              }
-              
-              // Draw background
-              this.ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, coverX, coverY, coverW, coverH);
-              this.ctx.restore();
-
-              // 2. Draw main content (Contain)
-              let drawWidth = layout.width;
-              let drawHeight = layout.height;
-              let drawX = layout.x;
-              let drawY = layout.y;
-
-              if (sourceAspect > targetAspect) {
-                // Letterbox (bars top/bottom)
-                drawHeight = layout.width / sourceAspect;
-                drawY = layout.y + (layout.height - drawHeight) / 2;
-              } else {
-                // Pillarbox (bars left/right)
-                drawWidth = layout.height * sourceAspect;
-                drawX = layout.x + (layout.width - drawWidth) / 2;
-              }
-
-              // Draw main content with shadow to separate from background
-              this.ctx.save();
-              this.ctx.shadowColor = 'rgba(0,0,0,0.5)';
-              this.ctx.shadowBlur = 20;
-              this.ctx.drawImage(
-                video,
-                0, 0, video.videoWidth, video.videoHeight,
-                drawX, drawY, drawWidth, drawHeight
-              );
-              this.ctx.restore();
-            } else {
-              // Aspect ratios match closely, just draw normally
-              this.ctx.drawImage(
-                video,
-                0, 0, video.videoWidth, video.videoHeight,
-                layout.x, layout.y, layout.width, layout.height
-              );
-            }
+            // Draw screen content filling entire space (fill mode)
+            this.ctx.drawImage(
+              video,
+              0, 0, video.videoWidth, video.videoHeight,
+              layout.x, layout.y, layout.width, layout.height
+            );
           } else {
             // If screen dimensions are not ready, draw nothing to avoid visual flash or overlays
             if (Math.random() < 0.01) {
@@ -1497,30 +1434,13 @@ export class VideoCompositor {
     // Use zoom + stretch to ensure no black/white spaces
     // For camera sources, use normal drawImage
     if (sourceId === 'screen') {
-      // Screen: preserve aspect ratio (object-contain) to avoid zooming
+      // Screen: Use "fill" mode - stretch to fill entire space (like window recording)
+      // This ensures no black bars AND no cropping, at the cost of aspect ratio distortion
       if (video.videoWidth > 0 && video.videoHeight > 0) {
-        const sourceAspect = video.videoWidth / video.videoHeight;
-        const targetAspect = layout.width / layout.height;
-
-        let drawWidth = layout.width;
-        let drawHeight = layout.height;
-        let drawX = layout.x;
-        let drawY = layout.y;
-
-        if (Math.abs(sourceAspect - targetAspect) > 0.01) {
-          if (sourceAspect > targetAspect) {
-            drawHeight = layout.width / sourceAspect;
-            drawY = layout.y + (layout.height - drawHeight) / 2;
-          } else {
-            drawWidth = layout.height * sourceAspect;
-            drawX = layout.x + (layout.width - drawWidth) / 2;
-          }
-        }
-
         this.ctx.drawImage(
           video,
           0, 0, video.videoWidth, video.videoHeight,
-          drawX, drawY, drawWidth, drawHeight
+          layout.x, layout.y, layout.width, layout.height
         );
       } else {
         // Draw loading placeholder if dimensions are not ready

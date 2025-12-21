@@ -1512,7 +1512,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <video
               ref={handleScreenRef}
               autoPlay muted playsInline
-              className="w-full h-full object-cover"
+              className="w-full h-full object-fill"
             />
             <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">{t('record_video.screen')}</div>
           </div>
@@ -1537,7 +1537,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
           <video
             ref={handleScreenRef}
             autoPlay muted playsInline
-            className="w-full h-full object-contain"
+            className="w-full h-full object-fill"
           />
 
           {/* Overlay (Camera) - Responsive Position Bottom Right */}
@@ -1562,7 +1562,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             <video
               ref={handleScreenRef}
               autoPlay muted playsInline
-              className="w-full h-full object-cover"
+              className="w-full h-full object-fill"
             />
             <div className="absolute top-4 left-4 bg-black/60 text-white px-2 py-1 rounded text-xs backdrop-blur-sm">{t('record_video.screen')}</div>
           </div>
@@ -1583,20 +1583,11 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
     if (hasScreen && (!hasCamera || currentLayout === 'screen-only')) {
       return (
         <div className="w-full h-full relative bg-black rounded-2xl overflow-hidden">
-          {/* Blurred Background */}
-          <div className="absolute inset-0 z-0">
-             <video
-                ref={handleScreenBgRef}
-                autoPlay muted playsInline
-                className="w-full h-full object-cover filter blur-lg opacity-50 scale-110"
-             />
-          </div>
-          
-          {/* Main Content */}
+          {/* Main Content - Use object-fill to stretch and fill entire screen (no black bars, no cropping) */}
           <video
             ref={handleScreenRef}
             autoPlay muted playsInline
-            className="relative z-10 w-full h-full object-contain"
+            className="relative z-10 w-full h-full object-fill"
           />
           {renderRecordingStats()}
         </div>

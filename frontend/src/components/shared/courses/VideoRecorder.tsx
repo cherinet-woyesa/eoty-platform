@@ -1328,22 +1328,13 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             {/* Screen Share Preview - Enhanced */}
             {recordingSources.screen && (
               <div className={`screen-preview absolute inset-0 overflow-hidden bg-black ${currentLayout === 'camera-only' ? 'hidden' : ''}`}>
-                {/* Blurred Background */}
-                <div className="absolute inset-0 z-0">
-                   <video
-                      ref={screenVideoBgRef}
-                      autoPlay muted playsInline
-                      className="w-full h-full object-cover filter blur-lg opacity-50 scale-110"
-                   />
-                </div>
-                
                 {/* Main Content - Clean Fit */}
                 <video
                   ref={screenVideoRef}
                   autoPlay
                   muted
                   playsInline
-                  className="relative w-full h-full object-contain z-10"
+                  className="relative w-full h-full object-fill z-10"
                 />
                 <div className="absolute top-2 left-2 bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium flex items-center space-x-1 shadow-lg z-20">
                   <Monitor className="h-3 w-3" />
