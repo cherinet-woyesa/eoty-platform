@@ -249,7 +249,8 @@ class UserNote {
 
   static async findPublicByResource(resourceId) {
     return await db('user_notes')
-      .where({ resource_id: resourceId, is_public: true })
+      .where('user_notes.resource_id', resourceId)
+      .where('user_notes.is_public', true)
       .join('users', 'user_notes.user_id', 'users.id')
       .select(
         'user_notes.*',
