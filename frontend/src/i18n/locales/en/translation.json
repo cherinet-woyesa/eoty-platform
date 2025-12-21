@@ -3795,6 +3795,37 @@
             "content": "Dive into our library of books, articles, and multimedia resources. Whether you need study materials or daily inspiration, you'll find it here."
           }
         }
+      },
+      "teacher": {
+        "steps": {
+          "0": {
+            "title": "Welcome, Teacher!",
+            "description": "Learn about your role as a teacher on the platform.",
+            "content": "As a teacher, you can create and manage courses, interact with students, and contribute to the community."
+          },
+          "1": {
+            "title": "Create Your First Course",
+            "description": "Learn how to create and structure a course.",
+            "content": "Creating a course involves setting up course details, adding lessons, and organizing content.",
+            "action_required": "Navigate to the course creation page and explore the options."
+          },
+          "2": {
+            "title": "Add Lessons to Your Course",
+            "description": "Learn how to add and organize lessons within your course.",
+            "content": "Lessons are the building blocks of your course. You can add videos, quizzes, and resources to each lesson.",
+            "action_required": "Try adding a lesson to understand the lesson creation process."
+          },
+          "3": {
+            "title": "Manage Student Engagement",
+            "description": "Learn how to interact with students and track their progress.",
+            "content": "You can view student progress, respond to questions, and provide feedback through the platform."
+          },
+          "4": {
+            "title": "Use Admin Tools",
+            "description": "Explore the admin tools available to teachers.",
+            "content": "Teachers have access to moderation tools, analytics, and content management features."
+          }
+        }
       }
     }
   },

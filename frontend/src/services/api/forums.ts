@@ -31,6 +31,10 @@ export interface ForumTopic {
   pinned_at?: string;
   pinned_by?: string;
   tags?: string[];
+  like_count?: number;
+  author_first_name?: string;
+  author_last_name?: string;
+  author_name?: string; // Sometimes returned as full name
 }
 
 export interface ForumPost {
@@ -45,6 +49,9 @@ export interface ForumPost {
   moderation_reason?: string;
   created_at: string;
   updated_at: string;
+  author_name?: string;
+  author_first_name?: string;
+  author_last_name?: string;
 }
 
 export interface ForumAttachment {

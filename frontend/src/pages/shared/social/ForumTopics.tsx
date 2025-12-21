@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, MessageSquare, Eye, Pin, Lock, Shield, Search } from 'lucide-react';
+import { ArrowLeft, Plus, MessageSquare, Eye, Pin, Lock, Shield, Search, Heart, Calendar, User } from 'lucide-react';
 import { useForumTopics } from '@/hooks/useCommunity';
 import { useAuth } from '@/context/AuthContext';
 
@@ -41,13 +41,13 @@ const ForumTopics: React.FC = () => {
 
   if (loading && topics.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-12">
-        <div className="max-w-4xl mx-auto px-4">
-          <div className="animate-pulse">
-            <div className="h-8 bg-stone-200 rounded w-1/3 mb-6"></div>
-            <div className="space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 bg-stone-200 rounded-xl"></div>
+      <div className="min-h-screen bg-gray-50/30 py-12">
+        <div className="max-w-5xl mx-auto px-4">
+          <div className="animate-pulse space-y-6">
+            <div className="h-32 bg-gray-200 rounded-2xl w-full"></div>
+            <div className="grid grid-cols-1 gap-4">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-40 bg-gray-200 rounded-xl"></div>
               ))}
             </div>
           </div>
@@ -58,17 +58,17 @@ const ForumTopics: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-12">
+      <div className="min-h-screen bg-gray-50/30 py-12">
         <div className="max-w-5xl mx-auto px-4">
-          <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-red-200 p-6 shadow-md">
-            <h2 className="text-red-800 font-semibold mb-2 flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Error Loading Topics
-            </h2>
-            <p className="text-red-600">{error}</p>
+          <div className="bg-white rounded-2xl border border-red-100 p-8 shadow-sm text-center">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MessageSquare className="h-8 w-8 text-red-500" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Unable to load topics</h2>
+            <p className="text-gray-500 mb-6">{error}</p>
             <button
               onClick={() => navigate('/forums')}
-              className="mt-4 inline-flex items-center gap-2 text-[#27AE60] hover:text-[#1E874B] font-medium"
+              className="inline-flex items-center gap-2 px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all shadow-sm"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Back to Forums</span>
@@ -80,158 +80,134 @@ const ForumTopics: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-50 via-neutral-50 to-slate-50 py-12">
-      <div className="max-w-5xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-50/30 py-12">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="bg-gradient-to-r from-[#27AE60]/15 via-[#16A085]/15 to-[#2980B9]/15 rounded-2xl p-6 border border-[#27AE60]/25 shadow-lg mb-6">
-          <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-4">
-              <button
-                onClick={() => navigate('/forums')}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white/80 hover:bg-white rounded-lg border border-stone-200 text-stone-700 hover:text-stone-900 transition-all"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Forums
-              </button>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-stone-800">Forum Topics</h1>
-                <p className="text-stone-600 mt-1 max-w-2xl">Explore current conversations, pinned teachings, and questions raised by the community. Join in with thoughtful, faith-aligned contributions.</p>
-              </div>
+        <div className="mb-8">
+          <button
+            onClick={() => navigate('/forums')}
+            className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors mb-6"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Forums
+          </button>
+          
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Forum Topics</h1>
+              <p className="text-gray-500 mt-2 max-w-2xl text-lg">Join the conversation, share your thoughts, and connect with the community.</p>
             </div>
             {canCreateTopic && (
               <Link
                 to={`/forums/${forumId}/new-topic`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg transform active:scale-95"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5" />
                 Start New Topic
               </Link>
             )}
           </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-[#27AE60]/20 p-4 shadow-sm flex flex-col">
-              <span className="text-xs uppercase tracking-wide text-stone-500">Total Topics</span>
-              <span className="text-2xl font-bold text-[#27AE60] mt-1">{summary.totalTopics}</span>
-              <span className="text-xs text-stone-500 mt-2">Conversations opened in this forum</span>
-            </div>
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-[#16A085]/20 p-4 shadow-sm flex flex-col">
-              <span className="text-xs uppercase tracking-wide text-stone-500">Pinned Teachings</span>
-              <span className="text-2xl font-bold text-[#16A085] mt-1">{summary.pinnedTopics}</span>
-              <span className="text-xs text-stone-500 mt-2">Highlighted guidance from moderators</span>
-            </div>
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-[#2980B9]/20 p-4 shadow-sm flex flex-col">
-              <span className="text-xs uppercase tracking-wide text-stone-500">Total Replies</span>
-              <span className="text-2xl font-bold text-[#2980B9] mt-1">{summary.totalReplies}</span>
-              <span className="text-xs text-stone-500 mt-2">Community engagement across topics</span>
-            </div>
-            <div className="bg-white/90 backdrop-blur-sm rounded-xl border border-[#8E44AD]/20 p-4 shadow-sm flex flex-col">
-              <span className="text-xs uppercase tracking-wide text-stone-500">Private Threads</span>
-              <span className="text-2xl font-bold text-[#8E44AD] mt-1">{summary.privateTopics}</span>
-              <span className="text-xs text-stone-500 mt-2">Conversations for trusted members</span>
-            </div>
-          </div>
         </div>
 
-        {/* Search */}
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-stone-200 p-5 shadow-md mb-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-stone-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-stone-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#27AE60] focus:border-[#27AE60] text-stone-700 transition-all duration-200"
-                placeholder="Search topics by question, keyword, or author"
-              />
-            </div>
-            {canCreateTopic && (
-              <Link
-                to={`/forums/${forumId}/new-topic`}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm border border-[#27AE60]/40 text-[#27AE60] font-medium rounded-lg hover:bg-[#27AE60]/10 transition-all"
-              >
-                <Plus className="h-4 w-4" />
-                New Topic
-              </Link>
-            )}
+        {/* Search & Filter Bar */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-2 shadow-sm mb-8 flex items-center gap-2 sticky top-4 z-10">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-transparent border-none focus:ring-0 text-gray-900 placeholder-gray-400 text-base"
+              placeholder="Search discussions..."
+            />
           </div>
-          {searchTerm && (
-            <p className="text-xs text-stone-500 mt-2">Showing {filteredTopics.length} of {topics.length} topics</p>
-          )}
+          {/* Add Filter Dropdown here if needed */}
         </div>
 
         {/* Topics List */}
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl border border-stone-200 overflow-hidden shadow-md">
+        <div className="space-y-4">
           {filteredTopics.length > 0 ? (
             <>
               {filteredTopics.map(topic => (
                 <Link
                   key={topic.id}
                   to={`/forums/${forumId}/topics/${topic.id}`}
-                  className="block border-b border-stone-200 last:border-b-0 hover:bg-stone-50 transition-colors"
+                  className="group block bg-white rounded-2xl border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all duration-200 relative overflow-hidden"
                 >
-                  <div className="p-6">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-2">
-                      <div className="flex items-start gap-3">
-                        {topic.is_pinned && (
-                          <Pin className="h-4 w-4 text-amber-500 fill-current mt-1" />
-                        )}
-                        {topic.is_locked && (
-                          <Lock className="h-4 w-4 text-red-500 mt-1" />
-                        )}
-                        {topic.is_private && (
-                          <Shield className="h-4 w-4 text-[#2980B9] mt-1" title="Private topic" />
-                        )}
-                        <div>
-                          <h3 className="text-lg font-semibold text-stone-900">
-                            {topic.title}
-                          </h3>
-                          <p className="text-sm text-stone-500 mt-1 line-clamp-2">{topic.content?.slice(0, 160) || 'Tap to read the full discussion'}</p>
+                  {/* Left accent border on hover */}
+                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
+                  <div className="flex flex-col md:flex-row gap-6">
+                    {/* Main Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {topic.is_pinned && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 text-xs font-bold uppercase tracking-wide border border-amber-100">
+                              <Pin className="h-3 w-3 fill-current" /> Pinned
+                            </span>
+                          )}
+                          {topic.is_locked && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-bold uppercase tracking-wide border border-gray-200">
+                              <Lock className="h-3 w-3" /> Locked
+                            </span>
+                          )}
+                          {topic.is_private && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wide border border-indigo-100">
+                              <Shield className="h-3 w-3" /> Private
+                            </span>
+                          )}
                         </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 text-sm text-stone-500">
-                        <div className="flex items-center gap-1">
-                          <MessageSquare className="h-4 w-4" />
-                          <span>{topic.post_count}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Eye className="h-4 w-4" />
-                          <span>{topic.view_count}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <div className="flex flex-wrap items-center gap-3 text-sm text-stone-600">
-                        <span>By {topic.author_first_name} {topic.author_last_name}</span>
-                        <span className="hidden md:block">•</span>
-                        <span>{new Date(topic.created_at).toLocaleString()}</span>
-                        {topic.is_private && (
-                          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium bg-[#2980B9]/10 text-[#2980B9] rounded-full">
-                            <Shield className="h-3 w-3" /> Private
-                          </span>
-                        )}
+                        <span className="text-xs font-medium text-gray-400 whitespace-nowrap flex-shrink-0">
+                          {new Date(topic.created_at).toLocaleDateString()}
+                        </span>
                       </div>
 
-                      {topic.last_activity_at && (
-                        <div className="text-sm text-stone-500">
-                          Last activity: {new Date(topic.last_activity_at).toLocaleString()}
+                      <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                        {topic.title}
+                      </h3>
+                      
+                      {/* Optional: Truncated content or just hide it for cleaner look as requested */}
+                      {/* <p className="text-gray-500 text-sm line-clamp-2 mb-4 leading-relaxed">
+                        {topic.content?.replace(/<[^>]*>/g, '').slice(0, 160) || 'No preview available'}
+                      </p> */}
+
+                      <div className="flex items-center gap-2 mt-4">
+                        <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+                          {topic.author_first_name ? topic.author_first_name.charAt(0) : <User className="h-3 w-3" />}
                         </div>
-                      )}
+                        <span className="text-sm font-medium text-gray-600">
+                          {topic.author_first_name} {topic.author_last_name}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Stats Column */}
+                    <div className="flex md:flex-col items-center md:items-end justify-between md:justify-center gap-4 md:gap-2 md:border-l md:border-gray-100 md:pl-6 min-w-[100px]">
+                      <div className="flex items-center gap-2 text-gray-500" title="Replies">
+                        <MessageSquare className="h-4 w-4" />
+                        <span className="font-semibold text-sm">{topic.post_count || 0}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-gray-500" title="Views">
+                        <Eye className="h-4 w-4" />
+                        <span className="font-semibold text-sm">{topic.view_count || 0}</span>
+                      </div>
+                      {/* Assuming like_count is available on topic object, if not it will be 0/undefined */}
+                      <div className="flex items-center gap-2 text-gray-500" title="Likes">
+                        <Heart className="h-4 w-4" />
+                        <span className="font-semibold text-sm">{topic.like_count || 0}</span>
+                      </div>
                     </div>
                   </div>
                 </Link>
               ))}
               
               {hasMore && (
-                <div className="p-5 text-center border-t border-stone-200 bg-stone-50/60">
+                <div className="pt-8 text-center">
                   <button
                     onClick={loadMore}
                     disabled={loading}
-                    className="inline-flex items-center gap-2 px-5 py-2 bg-white border border-[#27AE60]/40 text-[#27AE60] rounded-lg hover:bg-[#27AE60]/10 transition-all disabled:opacity-50"
+                    className="inline-flex items-center gap-2 px-8 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50 shadow-sm"
                   >
                     {loading ? 'Loading...' : 'Load More Topics'}
                   </button>
@@ -239,27 +215,25 @@ const ForumTopics: React.FC = () => {
               )}
             </>
           ) : (
-            <div className="text-center py-16 bg-gradient-to-r from-stone-50 to-neutral-50">
-              <div className="w-16 h-16 bg-gradient-to-r from-[#27AE60]/15 to-[#16A085]/15 rounded-full flex items-center justify-center mx-auto mb-4">
-                <MessageSquare className="h-8 w-8 text-[#27AE60]" />
+            <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 border-dashed">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <MessageSquare className="h-10 w-10 text-gray-300" />
               </div>
-              <h3 className="text-lg font-semibold text-stone-900 mb-2">
-                {searchTerm ? 'No topics match your search' : 'No topics yet'}
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                {searchTerm ? 'No topics found' : 'No topics yet'}
               </h3>
-              <p className="text-stone-600 mb-4">
+              <p className="text-gray-500 mb-8 max-w-md mx-auto">
                 {searchTerm
-                  ? 'Try different keywords or reset your filters.'
-                  : canCreateTopic
-                    ? 'Be the first to start a discussion rooted in Orthodox wisdom.'
-                    : 'Invite a moderator to open the first conversation.'}
+                  ? 'Try adjusting your search terms or filters.'
+                  : 'Be the first to start a conversation in this forum.'}
               </p>
               {canCreateTopic && (
                 <Link
                   to={`/forums/${forumId}/new-topic`}
-                  className="inline-flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-[#27AE60] to-[#16A085] hover:from-[#27AE60]/90 hover:to-[#16A085]/90 text-stone-900 text-sm font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-md hover:shadow-lg"
                 >
-                  <Plus className="h-4 w-4" />
-                  {searchTerm ? 'Start a new conversation' : 'Create First Topic'}
+                  <Plus className="h-5 w-5" />
+                  {searchTerm ? 'Start New Topic' : 'Create First Topic'}
                 </Link>
               )}
             </div>

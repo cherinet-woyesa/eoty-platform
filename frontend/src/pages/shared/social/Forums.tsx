@@ -441,7 +441,7 @@ const Forums: React.FC<ForumsProps> = ({ embedded = false }) => {
             </div>
           ) : filteredDiscussions.length > 0 ? (
             <>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {filteredDiscussions.map((discussion) => (
                   <DiscussionCard
                     key={discussion.id}
