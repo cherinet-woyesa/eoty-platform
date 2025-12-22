@@ -1108,6 +1108,7 @@ const adminController = {
             author: approvedUpload.metadata?.author || 'Unknown',
             category: approvedUpload.category || 'General',
             file_name: approvedUpload.file_name,
+            original_filename: approvedUpload.original_filename || approvedUpload.file_name,
             file_type: approvedUpload.file_type,
             file_path: approvedUpload.file_path,
             file_size: approvedUpload.file_size,

@@ -20,6 +20,8 @@ router.get('/catalog', requirePermission('course:view'), courseController.getCou
 router.post('/bulk-action', bulkOperationLimiter, requireRole(['teacher', 'admin']), validateBulkAction, courseController.bulkAction);
 
 // Lesson operations (specific routes before parameterized ones)
+// Get lesson details accessible to enrolled students, course owners, and admins
+router.get('/lessons/:lessonId', requirePermission('lesson:view'), courseController.getLesson);
 // Teachers can edit/delete their own lessons, admins can edit/delete any
 router.put('/lessons/:lessonId', requireRole(['teacher', 'admin']), validateLessonData, checkLessonOwnership, courseController.updateLesson);
 router.delete('/lessons/:lessonId', requireRole(['teacher', 'admin']), checkLessonOwnership, courseController.deleteLesson);

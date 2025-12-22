@@ -417,12 +417,39 @@
   "auth": {
     "login": {
       "title": "Seeni Akkaawuntii Keessanii",
+      "subtitle": "Barbaadota keessanii fi saayintii walxaxaa keessanii hiriirfamu",
       "email_placeholder": "Imeelii keessanii galchi",
       "password_placeholder": "Jechi iccitii keessanii galchi",
       "forgot_password": "Jechi iccitii Keessaa Hin Yaaddinoota?",
-      "login_button": "Seeni",
+      "login_button": "Seeni Akkaawuntii Keessanii",
+      "loading": "Seeni jira...",
       "no_account": "Akkaawuntii Hin Qabdu?",
-      "register_link": "Asitti Galmaa'i"
+      "register_link": "Asitti Galmaa'i",
+      "or_continue": "Yookiin hiriirfamu",
+      "remember_me": "Garaagarummaa kiyya 12 yuuvootii waan darre",
+      "remember_me_desc": "Kana irratti ani seenaa jiraachuu waan darre",
+      "twofa_title": "Waldaa Lameffaa Madaallii",
+      "twofa_subtitle": "Imeelii keessanii ergamee 6-lakkawwa koodii galchi",
+      "twofa_label": "Koodii Madaallii",
+      "twofa_placeholder": "123456",
+      "twofa_verify": "Koodii Madaallii",
+      "twofa_verify_loading": "Madaallii jira...",
+      "twofa_back": "Deebii Seenii",
+      "retry_help": "Seenii osoo hin taane dogoggoraaraa? Jechi iccitii keessanii deebi yookiin gargaarsa gaafadhu",
+      "validation": {
+        "email_required": "Imeelii barbaachisa",
+        "email_invalid": "Imeelii sirrii galchi",
+        "password_required": "Jechi iccitii barbaachisa",
+        "password_min": "Jechi iccitii yoo xiqqaate 6 olka'ii",
+        "code_invalid": "Koodii 6-lakkawwa sirrii galchi"
+      },
+      "messages": {
+        "verified": "Madaallii moo'atee! Deebii gara seenii...",
+        "success": "Baga dhaafaa! Deebii gara daashibordii keessanii...",
+        "success_toast": "Seenii moo'ate",
+        "google_password": "Akkaawuntii kun Google waliin uumamee dha. Jechi iccitii waan darre seeniif, eebbaa",
+        "google_password_link": "asitti jechi iccitii waan darre qopheessi"
+      }
     },
     "register": {
       "title": "Akkaawuntii Keessanii Uumi",

@@ -70,7 +70,7 @@ const courseController = {
         (course.is_published ? 'published' : 'draft');
 
       // Check permissions: teacher owns course OR admin OR base user enrolled
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin';
 
@@ -84,7 +84,7 @@ const courseController = {
         const enrollment = await db('user_course_enrollments')
           .where({ user_id: userId, course_id: courseId })
           .first();
-        
+
         if (!enrollment) {
           return res.status(403).json({
             success: false,
@@ -151,18 +151,18 @@ const courseController = {
         coursesQuery = coursesQuery
           .join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
           .where('uce.user_id', userId);
-          
-          // For students, we want to see how many students are in the course (social proof)
-          coursesQuery.leftJoin('user_course_enrollments as all_uce', 'c.id', 'all_uce.course_id');
-          selects.push(db.raw('COUNT(DISTINCT all_uce.user_id) as student_count'));
+
+        // For students, we want to see how many students are in the course (social proof)
+        coursesQuery.leftJoin('user_course_enrollments as all_uce', 'c.id', 'all_uce.course_id');
+        selects.push(db.raw('COUNT(DISTINCT all_uce.user_id) as student_count'));
       } else if (userRole === 'teacher') {
         coursesQuery = coursesQuery.where('c.created_by', userId);
         // For teachers, count their students
         coursesQuery.leftJoin('user_course_enrollments as uce', 'c.id', 'uce.course_id');
         selects.push(db.raw('COUNT(DISTINCT uce.user_id) as student_count'));
       } else if (userRole === 'admin') {
-         coursesQuery.leftJoin('user_course_enrollments as uce', 'c.id', 'uce.course_id');
-         selects.push(db.raw('COUNT(DISTINCT uce.user_id) as student_count'));
+        coursesQuery.leftJoin('user_course_enrollments as uce', 'c.id', 'uce.course_id');
+        selects.push(db.raw('COUNT(DISTINCT uce.user_id) as student_count'));
       }
 
       coursesQuery.select(selects);
@@ -177,42 +177,42 @@ const courseController = {
 
       if (category && category !== 'all') {
         coursesQuery.where(builder => {
-            builder.where('c.category', category)
-                   .orWhere('c.category', 'ilike', category);
+          builder.where('c.category', category)
+            .orWhere('c.category', 'ilike', category);
         });
       }
 
       if (status && status !== 'all') {
-         if (status === 'published') {
-             coursesQuery.where(builder => {
-                 builder.where('c.is_published', true)
-                        .orWhere('c.status', 'published');
-             });
-         } else if (status === 'draft') {
-             coursesQuery.where(builder => {
-                 builder.where('c.is_published', false)
-                        .andWhereNot('c.status', 'archived')
-                        .andWhereNot('c.status', 'published'); // Ensure not published
-             });
-         } else if (status === 'archived') {
-             coursesQuery.where('c.status', 'archived');
-         } else if (status === 'scheduled') {
-             coursesQuery.where('c.status', 'scheduled');
-         } else {
-             coursesQuery.where('c.status', status);
-         }
+        if (status === 'published') {
+          coursesQuery.where(builder => {
+            builder.where('c.is_published', true)
+              .orWhere('c.status', 'published');
+          });
+        } else if (status === 'draft') {
+          coursesQuery.where(builder => {
+            builder.where('c.is_published', false)
+              .andWhereNot('c.status', 'archived')
+              .andWhereNot('c.status', 'published'); // Ensure not published
+          });
+        } else if (status === 'archived') {
+          coursesQuery.where('c.status', 'archived');
+        } else if (status === 'scheduled') {
+          coursesQuery.where('c.status', 'scheduled');
+        } else {
+          coursesQuery.where('c.status', status);
+        }
       }
 
       // Sorting
       if (sortBy === 'student_count') {
-          coursesQuery.orderBy('student_count', sortOrder);
+        coursesQuery.orderBy('student_count', sortOrder);
       } else if (sortBy === 'lesson_count') {
-          coursesQuery.orderBy('lesson_count', sortOrder);
+        coursesQuery.orderBy('lesson_count', sortOrder);
       } else if (sortBy === 'total_duration') {
-          coursesQuery.orderBy('total_duration', sortOrder);
+        coursesQuery.orderBy('total_duration', sortOrder);
       } else {
-          // Default column sort
-          coursesQuery.orderBy(`c.${sortBy}`, sortOrder);
+        // Default column sort
+        coursesQuery.orderBy(`c.${sortBy}`, sortOrder);
       }
 
       // Pagination
@@ -227,12 +227,12 @@ const courseController = {
       // We need total count for pagination.
       let countQuery = db('courses as c');
       if (userRole === 'user' || userRole === 'student') {
-          countQuery.join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
-                    .where('uce.user_id', userId);
+        countQuery.join('user_course_enrollments as uce', 'c.id', 'uce.course_id')
+          .where('uce.user_id', userId);
       } else if (userRole === 'teacher') {
-          countQuery.where('c.created_by', userId);
+        countQuery.where('c.created_by', userId);
       }
-      
+
       if (q) {
         countQuery.where(builder => {
           builder.where('c.title', 'ilike', `%${q}%`)
@@ -240,55 +240,55 @@ const courseController = {
         });
       }
       if (category && category !== 'all') {
-         countQuery.where(builder => {
-            builder.where('c.category', category)
-                   .orWhere('c.category', 'ilike', category);
+        countQuery.where(builder => {
+          builder.where('c.category', category)
+            .orWhere('c.category', 'ilike', category);
         });
       }
       if (status && status !== 'all') {
-         if (status === 'published') {
-             countQuery.where(builder => {
-                 builder.where('c.is_published', true)
-                        .orWhere('c.status', 'published');
-             });
-         } else if (status === 'draft') {
-             countQuery.where(builder => {
-                 builder.where('c.is_published', false)
-                        .andWhereNot('c.status', 'archived')
-                        .andWhereNot('c.status', 'published');
-             });
-         } else if (status === 'archived') {
-             countQuery.where('c.status', 'archived');
-         } else {
-             countQuery.where('c.status', status);
-         }
+        if (status === 'published') {
+          countQuery.where(builder => {
+            builder.where('c.is_published', true)
+              .orWhere('c.status', 'published');
+          });
+        } else if (status === 'draft') {
+          countQuery.where(builder => {
+            builder.where('c.is_published', false)
+              .andWhereNot('c.status', 'archived')
+              .andWhereNot('c.status', 'published');
+          });
+        } else if (status === 'archived') {
+          countQuery.where('c.status', 'archived');
+        } else {
+          countQuery.where('c.status', status);
+        }
       }
-      
+
       const totalResult = await countQuery.count('c.id as total').first();
       const total = parseInt(totalResult.total || 0, 10);
 
       // Aggregate counts for status badges (Teacher only)
       let counts = { total };
       if (userRole === 'teacher') {
-          const statusCounts = await db('courses')
-              .where('created_by', userId)
-              .select(
-                  db.raw('COUNT(*) as total'),
-                  // Published: is_published=true OR status='published'
-                  db.raw("COUNT(CASE WHEN is_published = true OR status = 'published' THEN 1 END) as published"),
-                  // Archived: status='archived'
-                  db.raw("COUNT(CASE WHEN status = 'archived' THEN 1 END) as archived"),
-                  // Draft: NOT Published AND NOT Archived
-                  db.raw("COUNT(CASE WHEN (is_published = false AND status != 'published') AND status != 'archived' THEN 1 END) as draft")
-              )
-              .first();
-          
-          counts = {
-              total: parseInt(statusCounts.total || 0),
-              published: parseInt(statusCounts.published || 0),
-              draft: parseInt(statusCounts.draft || 0),
-              archived: parseInt(statusCounts.archived || 0)
-          };
+        const statusCounts = await db('courses')
+          .where('created_by', userId)
+          .select(
+            db.raw('COUNT(*) as total'),
+            // Published: is_published=true OR status='published'
+            db.raw("COUNT(CASE WHEN is_published = true OR status = 'published' THEN 1 END) as published"),
+            // Archived: status='archived'
+            db.raw("COUNT(CASE WHEN status = 'archived' THEN 1 END) as archived"),
+            // Draft: NOT Published AND NOT Archived
+            db.raw("COUNT(CASE WHEN (is_published = false AND status != 'published') AND status != 'archived' THEN 1 END) as draft")
+          )
+          .first();
+
+        counts = {
+          total: parseInt(statusCounts.total || 0),
+          published: parseInt(statusCounts.published || 0),
+          draft: parseInt(statusCounts.draft || 0),
+          archived: parseInt(statusCounts.archived || 0)
+        };
       }
 
       res.json({
@@ -447,7 +447,7 @@ const courseController = {
 
       // Check if allow_download column exists
       const hasAllowDownload = await db.schema.hasColumn('lessons', 'allow_download');
-      
+
       const lessonData = {
         title,
         description,
@@ -458,12 +458,12 @@ const courseController = {
         created_at: new Date(),
         updated_at: new Date()
       };
-      
+
       // Only include allow_download if column exists
       if (hasAllowDownload) {
         lessonData.allow_download = allow_download !== undefined ? allow_download : false;
       }
-      
+
       const lessonIdResult = await db('lessons').insert(lessonData).returning('id');
       const lessonId = lessonIdResult[0].id;
 
@@ -501,7 +501,7 @@ const courseController = {
 
       // Check if videos table exists
       const hasVideosTable = await db.schema.hasTable('videos');
-      
+
       // Get lesson with course info - explicitly select video_url to ensure we get the updated transcoded URL
       let lesson;
       if (hasVideosTable) {
@@ -511,9 +511,9 @@ const courseController = {
           .leftJoin('videos as v', 'l.video_id', 'v.id')
           .where('l.id', lessonId)
           .select(
-            'l.*', 
-            'c.created_by as course_teacher', 
-            'v.s3_key', 
+            'l.*',
+            'c.created_by as course_teacher',
+            'v.s3_key',
             'v.video_url as video_video_url', // Also get video_url from videos table
             'v.hls_url as video_hls_url',
             'v.status as video_status', // Get processing status from videos table
@@ -526,13 +526,13 @@ const courseController = {
           .join('courses as c', 'l.course_id', 'c.id')
           .where('l.id', lessonId)
           .select(
-            'l.*', 
-            'c.created_by as course_teacher', 
+            'l.*',
+            'c.created_by as course_teacher',
             'c.id as course_id'
           )
           .first();
       }
-      
+
       if (!lesson) {
         return res.status(404).json({
           success: false,
@@ -557,7 +557,7 @@ const courseController = {
 
       // Check access: teacher owns course OR student is enrolled OR admin
       let hasAccess = false;
-      
+
       if (userRole === 'teacher' && lesson.course_teacher === userId) {
         hasAccess = true;
       } else if (userRole === 'student') {
@@ -669,7 +669,7 @@ const courseController = {
       }
 
       // Check permissions: teacher owns course OR admin
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin' ||
         userRole === 'admin';
@@ -814,7 +814,7 @@ const courseController = {
       }
 
       // Check permissions: teacher owns course OR admin
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin' ||
         userRole === 'admin';
@@ -880,7 +880,7 @@ const courseController = {
 
       // Check permissions for each course
       const unauthorizedCourses = courses.filter(course => {
-        const hasPermission = 
+        const hasPermission =
           (userRole === 'teacher' && course.created_by === userId) ||
           userRole === 'admin' ||
           userRole === 'admin';
@@ -1019,7 +1019,7 @@ const courseController = {
       }
 
       // Check permissions: teacher owns course OR admin
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin' ||
         userRole === 'admin';
@@ -1120,7 +1120,7 @@ const courseController = {
       }
 
       // Check permissions: teacher owns course OR admin
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin' ||
         userRole === 'admin';
@@ -1185,7 +1185,7 @@ const courseController = {
       }
 
       const scheduledDateTime = new Date(scheduledDate);
-      
+
       // Validate scheduled date is in the future
       if (scheduledDateTime <= new Date()) {
         return res.status(400).json({
@@ -1205,7 +1205,7 @@ const courseController = {
       }
 
       // Check permissions: teacher owns course OR admin
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin' ||
         userRole === 'admin';
@@ -1305,7 +1305,7 @@ const courseController = {
       }
 
       // Check permissions: teacher owns course OR admin
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && course.created_by === userId) ||
         userRole === 'admin' ||
         userRole === 'admin';
@@ -1373,7 +1373,7 @@ const courseController = {
         order: lesson.order,
         views: parseInt(lesson.views) || 0,
         completions: parseInt(lesson.completions) || 0,
-        completionRate: lesson.views > 0 
+        completionRate: lesson.views > 0
           ? ((lesson.completions / lesson.views) * 100).toFixed(2)
           : 0
       }));
@@ -1444,7 +1444,7 @@ const courseController = {
 
       // Check if allow_download column exists
       const hasAllowDownload = await db.schema.hasColumn('lessons', 'allow_download');
-      
+
       if (title !== undefined) updateData.title = title;
       if (description !== undefined) updateData.description = description;
       if (order !== undefined) updateData.order = parseInt(order);
@@ -1488,8 +1488,8 @@ const courseController = {
       // Parse metadata back to object if it exists
       if (updatedLesson.metadata) {
         try {
-          updatedLesson.metadata = typeof updatedLesson.metadata === 'string' 
-            ? JSON.parse(updatedLesson.metadata) 
+          updatedLesson.metadata = typeof updatedLesson.metadata === 'string'
+            ? JSON.parse(updatedLesson.metadata)
             : updatedLesson.metadata;
         } catch (e) {
           updatedLesson.metadata = {};
@@ -1521,7 +1521,7 @@ const courseController = {
 
       // Check if videos table exists
       const hasVideosTable = await db.schema.hasTable('videos');
-      
+
       let lesson;
       if (hasVideosTable) {
         // Get lesson with video info (ownership already verified by middleware)
@@ -1681,7 +1681,7 @@ const courseController = {
       }
 
       // Check permissions: teacher owns course OR admin
-      const hasPermission = 
+      const hasPermission =
         (userRole === 'teacher' && lesson.course_owner === userId) ||
         userRole === 'admin' ||
         userRole === 'admin';
@@ -1721,146 +1721,146 @@ const courseController = {
       if (provider === 'mux') {
         // Sync with Mux if status is stuck (has upload_id but no asset_id, or has asset_id but no playback_id)
         const muxService = require('../services/muxService');
-        
+
         // If we have upload_id but no asset_id, check upload status
         // Only check if mux_upload_id column exists and has a value
         if (hasMuxUploadId && lesson.mux_upload_id && (!hasMuxAssetId || !lesson.mux_asset_id)) {
           try {
             console.log(`🔄 Syncing Mux upload status for lesson ${lessonId}, upload_id: ${lesson.mux_upload_id}`);
             const upload = await muxService.getUpload(lesson.mux_upload_id);
-            
+
             // Mux upload object has asset_id property
             const assetId = upload.asset_id || upload.assetId;
             if (assetId) {
               // Upload created an asset, update lesson
               console.log(`✅ Found asset_id from upload: ${assetId}`);
-              
+
               const updateData = {
                 updated_at: db.fn.now()
               };
-              
+
               if (hasMuxAssetId) updateData.mux_asset_id = assetId;
               if (hasMuxStatus) updateData.mux_status = 'processing';
               if (await db.schema.hasColumn('lessons', 'mux_created_at')) {
                 updateData.mux_created_at = db.fn.now();
               }
-              
+
               await db('lessons')
                 .where({ id: lessonId })
                 .update(updateData);
-              
+
               // Refresh lesson data
               const updatedLesson = await db('lessons').where({ id: lessonId }).first();
               if (hasMuxAssetId) lesson.mux_asset_id = updatedLesson.mux_asset_id;
               if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
             } else if (upload.status === 'asset_created') {
-                // Sometimes asset_id is not at top level but status says created
-                // We might need to fetch the asset separately or wait
-                console.log('Upload status is asset_created but no asset_id found yet');
+              // Sometimes asset_id is not at top level but status says created
+              // We might need to fetch the asset separately or wait
+              console.log('Upload status is asset_created but no asset_id found yet');
             }
           } catch (error) {
             console.warn(`⚠️  Failed to sync upload status: ${error.message}`);
           }
         }
-        
+
         // If we have asset_id but no playback_id, check asset status
         // Only check if mux_asset_id column exists and has a value
         if (hasMuxAssetId && lesson.mux_asset_id && (!hasMuxPlaybackId || !lesson.mux_playback_id)) {
           try {
             console.log(`🔄 Syncing Mux asset status for lesson ${lessonId}, asset_id: ${lesson.mux_asset_id}`);
             const asset = await muxService.getAsset(lesson.mux_asset_id);
-            
+
             if (asset.status === 'ready') {
               // Asset is ready, update lesson with playback_id
               // Use the first playback ID available
-              const playbackId = (asset.playback_ids && asset.playback_ids.length > 0) 
-                ? asset.playback_ids[0].id 
+              const playbackId = (asset.playback_ids && asset.playback_ids.length > 0)
+                ? asset.playback_ids[0].id
                 : null;
-                
+
               if (playbackId) {
-                  console.log(`✅ Found playback_id from asset: ${playbackId}`);
-                  
-                  const updateData = {
-                    updated_at: db.fn.now()
-                  };
-                  
-                  if (hasMuxPlaybackId) updateData.mux_playback_id = playbackId;
-                  if (hasMuxStatus) updateData.mux_status = 'ready';
-                  if (hasVideoProvider) updateData.video_provider = 'mux';
-                  
-                  await db('lessons')
-                    .where({ id: lessonId })
-                    .update(updateData);
-                  
-                  // Refresh lesson data
-                  const updatedLesson = await db('lessons').where({ id: lessonId }).first();
-                  if (hasMuxPlaybackId) lesson.mux_playback_id = updatedLesson.mux_playback_id;
-                  if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
-                  
-                  // Send WebSocket update
-                  const websocketService = require('../services/websocketService');
-                  websocketService.sendProgress(lessonId.toString(), {
-                    type: 'complete',
-                    progress: 100,
-                    currentStep: 'Video ready',
-                    provider: 'mux',
-                    playbackId: playbackId
-                  });
+                console.log(`✅ Found playback_id from asset: ${playbackId}`);
+
+                const updateData = {
+                  updated_at: db.fn.now()
+                };
+
+                if (hasMuxPlaybackId) updateData.mux_playback_id = playbackId;
+                if (hasMuxStatus) updateData.mux_status = 'ready';
+                if (hasVideoProvider) updateData.video_provider = 'mux';
+
+                await db('lessons')
+                  .where({ id: lessonId })
+                  .update(updateData);
+
+                // Refresh lesson data
+                const updatedLesson = await db('lessons').where({ id: lessonId }).first();
+                if (hasMuxPlaybackId) lesson.mux_playback_id = updatedLesson.mux_playback_id;
+                if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
+
+                // Send WebSocket update
+                const websocketService = require('../services/websocketService');
+                websocketService.sendProgress(lessonId.toString(), {
+                  type: 'complete',
+                  progress: 100,
+                  currentStep: 'Video ready',
+                  provider: 'mux',
+                  playbackId: playbackId
+                });
               } else {
-                  console.warn('Asset is ready but has no playback IDs. Attempting to create one...');
-                  try {
-                    const newPlaybackId = await muxService.createPlaybackId(lesson.mux_asset_id, 'public');
-                    if (newPlaybackId && newPlaybackId.id) {
-                       console.log(`✅ Created new playback_id: ${newPlaybackId.id}`);
-                       
-                       const updateData = {
-                         updated_at: db.fn.now()
-                       };
-                       
-                       if (hasMuxPlaybackId) updateData.mux_playback_id = newPlaybackId.id;
-                       if (hasMuxStatus) updateData.mux_status = 'ready';
-                       if (hasVideoProvider) updateData.video_provider = 'mux';
-                       
-                       await db('lessons')
-                         .where({ id: lessonId })
-                         .update(updateData);
-                         
-                       // Refresh lesson data
-                       const updatedLesson = await db('lessons').where({ id: lessonId }).first();
-                       if (hasMuxPlaybackId) lesson.mux_playback_id = updatedLesson.mux_playback_id;
-                       if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
-                       
-                       // Send WebSocket update
-                       const websocketService = require('../services/websocketService');
-                       websocketService.sendProgress(lessonId.toString(), {
-                         type: 'complete',
-                         progress: 100,
-                         currentStep: 'Video ready',
-                         provider: 'mux',
-                         playbackId: newPlaybackId.id
-                       });
-                    }
-                  } catch (createError) {
-                    console.error(`❌ Failed to create playback ID: ${createError.message}`);
+                console.warn('Asset is ready but has no playback IDs. Attempting to create one...');
+                try {
+                  const newPlaybackId = await muxService.createPlaybackId(lesson.mux_asset_id, 'public');
+                  if (newPlaybackId && newPlaybackId.id) {
+                    console.log(`✅ Created new playback_id: ${newPlaybackId.id}`);
+
+                    const updateData = {
+                      updated_at: db.fn.now()
+                    };
+
+                    if (hasMuxPlaybackId) updateData.mux_playback_id = newPlaybackId.id;
+                    if (hasMuxStatus) updateData.mux_status = 'ready';
+                    if (hasVideoProvider) updateData.video_provider = 'mux';
+
+                    await db('lessons')
+                      .where({ id: lessonId })
+                      .update(updateData);
+
+                    // Refresh lesson data
+                    const updatedLesson = await db('lessons').where({ id: lessonId }).first();
+                    if (hasMuxPlaybackId) lesson.mux_playback_id = updatedLesson.mux_playback_id;
+                    if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
+
+                    // Send WebSocket update
+                    const websocketService = require('../services/websocketService');
+                    websocketService.sendProgress(lessonId.toString(), {
+                      type: 'complete',
+                      progress: 100,
+                      currentStep: 'Video ready',
+                      provider: 'mux',
+                      playbackId: newPlaybackId.id
+                    });
                   }
+                } catch (createError) {
+                  console.error(`❌ Failed to create playback ID: ${createError.message}`);
+                }
               }
             } else if (asset.status === 'errored') {
               // Asset errored, update lesson
               console.log(`❌ Asset errored: ${asset.errors || 'Unknown error'}`);
-              
+
               const updateData = {
                 updated_at: db.fn.now()
               };
-              
+
               if (hasMuxStatus) updateData.mux_status = 'errored';
               if (await db.schema.hasColumn('lessons', 'mux_error_message')) {
                 updateData.mux_error_message = JSON.stringify(asset.errors || {});
               }
-              
+
               await db('lessons')
                 .where({ id: lessonId })
                 .update(updateData);
-              
+
               const updatedLesson = await db('lessons').where({ id: lessonId }).first();
               if (hasMuxStatus) lesson.mux_status = updatedLesson.mux_status;
               if (await db.schema.hasColumn('lessons', 'mux_error_message')) {
@@ -1871,7 +1871,7 @@ const courseController = {
             console.warn(`⚠️  Failed to sync asset status: ${error.message}`);
           }
         }
-        
+
         // Get status - if columns don't exist, use 'preparing' as default
         const currentStatus = (hasMuxStatus && lesson.mux_status) ? lesson.mux_status : 'preparing';
         statusData.videoStatus = currentStatus;
@@ -1891,7 +1891,7 @@ const courseController = {
             const video = await db('videos')
               .where('id', lesson.video_id)
               .first();
-            
+
             if (video) {
               statusData.videoStatus = video.status || 'ready';
               statusData.processingProgress = video.processing_progress || 100;
@@ -1934,17 +1934,17 @@ const courseController = {
   async getCourseCatalog(req, res) {
     try {
       const userId = req.user.userId;
-      
+
       const courses = await db('courses as c')
         .leftJoin('lessons as l', 'c.id', 'l.course_id')
-        .leftJoin('user_course_enrollments as uce', function() {
+        .leftJoin('user_course_enrollments as uce', function () {
           this.on('c.id', '=', 'uce.course_id')
             .andOn('uce.user_id', '=', db.raw('?', [userId]));
         })
-        .leftJoin('course_favorites as cf', function() {
+        .leftJoin('course_favorites as cf', function () {
           this.on('cf.course_id', '=', 'c.id').andOn('cf.user_id', '=', db.raw('?', [userId]));
         })
-        .leftJoin('bookmarks as bm', function() {
+        .leftJoin('bookmarks as bm', function () {
           this.on(db.raw('CAST(bm.entity_id AS INTEGER)'), '=', 'c.id')
             .andOn('bm.entity_type', '=', db.raw('?', ['course']))
             .andOn('bm.user_id', '=', db.raw('?', [userId]));
@@ -2278,7 +2278,7 @@ async function updateCourseStatistics(courseId) {
     // Note: We're not updating the courses table directly as these are computed values
     // They should be calculated on-the-fly in queries
     // This function is here for future use if we decide to cache these values
-    
+
     console.log(`Course ${courseId} statistics updated:`, {
       lessonCount: parseInt(stats.lesson_count) || 0,
       totalDuration: parseInt(stats.total_duration) || 0
@@ -2289,47 +2289,47 @@ async function updateCourseStatistics(courseId) {
   }
 };
 
-courseController.getVideoDownloadUrl = async function(req, res) {
-    try {
-      const { lessonId } = req.params;
-      const userId = req.user.userId;
+courseController.getVideoDownloadUrl = async function (req, res) {
+  try {
+    const { lessonId } = req.params;
+    const userId = req.user.userId;
 
-      const videoDownloadService = require('../services/videoDownloadService');
-      const result = await videoDownloadService.generateDownloadUrl(
-        parseInt(lessonId),
-        userId
-      );
+    const videoDownloadService = require('../services/videoDownloadService');
+    const result = await videoDownloadService.generateDownloadUrl(
+      parseInt(lessonId),
+      userId
+    );
 
-      res.json({
-        success: true,
-        data: result
-      });
-    } catch (error) {
-      console.error('Get video download URL error:', error);
-      
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: error.message
-        });
-      }
-      
-      if (error.message.includes('Access denied') || error.message.includes('not permitted')) {
-        return res.status(403).json({
-          success: false,
-          message: error.message
-        });
-      }
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error) {
+    console.error('Get video download URL error:', error);
 
-      res.status(500).json({
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
         success: false,
-        message: error.message || 'Failed to generate download URL'
+        message: error.message
       });
     }
+
+    if (error.message.includes('Access denied') || error.message.includes('not permitted')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to generate download URL'
+    });
+  }
 };
 
 // Upload course cover image
-courseController.uploadCourseImage = async function(req, res) {
+courseController.uploadCourseImage = async function (req, res) {
   try {
     console.log('Upload course image request:', {
       courseId: req.params.courseId,
@@ -2450,5 +2450,106 @@ courseController.uploadCourseImage = async function(req, res) {
     });
   }
 };
+
+// Get single lesson by ID with resources
+courseController.getLesson = async function (req, res) {
+    try {
+      const userId = req.user.userId;
+      const userRole = req.user.role;
+      const { lessonId } = req.params;
+
+      // Check if lessonId is a valid integer
+      if (isNaN(parseInt(lessonId))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid lesson ID'
+        });
+      }
+
+      // Fetch lesson with course information and resources
+      const lesson = await db('lessons as l')
+        .join('courses as c', 'l.course_id', 'c.id')
+        .leftJoin('resources as r', function () {
+          this.on('r.lesson_id', '=', 'l.id')
+        })
+        .where('l.id', lessonId)
+        .select(
+          'l.*',
+          'c.title as course_title',
+          'c.created_by as course_teacher_id',
+          db.raw(`
+            COALESCE(
+              JSON_AGG(
+                JSON_BUILD_OBJECT(
+                  'id', r.id,
+                  'title', r.title,
+                  'description', r.description,
+                  'file_url', r.file_url,
+                  'file_type', r.file_type,
+                  'file_size', r.file_size,
+                  'original_filename', r.original_filename,
+                  'created_at', r.created_at
+                )
+              ) FILTER (WHERE r.id IS NOT NULL),
+              '[]'::json
+            ) as resources
+          `)
+        )
+        .groupBy('l.id', 'c.title', 'c.created_by')
+        .first();
+
+      if (!lesson) {
+        return res.status(404).json({
+          success: false,
+          message: 'Lesson not found'
+        });
+      }
+
+      // Check permissions based on user role
+      let hasAccess = false;
+
+      if (userRole === 'admin') {
+        hasAccess = true;
+      } else if (userRole === 'teacher') {
+        // Teachers can access lessons in their own courses
+        hasAccess = lesson.course_teacher_id === userId;
+      } else if (userRole === 'student') {
+        // Students can access lessons from courses they're enrolled in
+        const enrollment = await db('user_course_enrollments')
+          .where({
+            user_id: userId,
+            course_id: lesson.course_id,
+            status: 'active'
+          })
+          .first();
+        hasAccess = !!enrollment;
+      }
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          lesson: {
+            ...lesson,
+            resources: lesson.resources || []
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Get lesson error:', error);
+      res.status(500).json({
+        success: false,
+        message: error.message || 'Failed to get lesson'
+      });
+    }
+  }
+;
 
 module.exports = courseController;

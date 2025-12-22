@@ -8,6 +8,7 @@ import FormError from '@/components/shared/auth/FormError';
 import LoadingButton from '@/components/shared/auth/LoadingButton';
 import { useFormValidation, validationRules } from '@/hooks/useFormValidation';
 import { extractErrorMessage } from '@/utils/errorMessages';
+import { brandColors } from '@/theme/brand';
 
 interface ForgotPasswordFormData {
   email: string;
@@ -132,38 +133,61 @@ const ForgotPassword: React.FC = () => {
       title="Reset your password"
       subtitle="Enter your email address and we'll send you a link to reset your password"
     >
-      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate aria-label="Forgot password form">
-        {/* Messages Section - Prominent positioning at top */}
-        <div className="space-y-3">
-          {/* Success Message */}
-          {successMessage && (
-            <FormError
-              type="success"
-              message={successMessage}
-              size="md"
-            />
-          )}
+      <div className="relative z-10">
+        <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Forgot password form">
+          {/* Messages Section - Enhanced styling */}
+          <div className="space-y-4">
+            {/* Success Message */}
+            {successMessage && (
+              <div 
+                className="p-4 rounded-xl border backdrop-blur-sm transform transition-all duration-300"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(34,197,94,0.05) 100%)',
+                  borderColor: 'rgba(34,197,94,0.2)',
+                  color: '#166534'
+                }}
+              >
+                <p className="text-sm font-medium">{successMessage}</p>
+              </div>
+            )}
 
-          {/* Error Message */}
-          {error && (
-            <FormError
-              type="error"
-              message={error}
-              dismissible={true}
-              onDismiss={() => setError(null)}
-              size="md"
-            />
-          )}
+            {/* Error Message with enhanced feedback */}
+            {error && (
+              <div 
+                className="p-4 rounded-xl border backdrop-blur-sm transform transition-all duration-300"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(239,68,68,0.05) 100%)',
+                  borderColor: 'rgba(239,68,68,0.2)',
+                  color: '#991b1b'
+                }}
+              >
+                <div className="flex items-start justify-between">
+                  <p className="text-sm font-medium flex-1">{error}</p>
+                  <button
+                    type="button"
+                    onClick={() => setError(null)}
+                    className="ml-3 text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+            )}
 
-          {/* Additional help for common issues */}
-          {error && error.includes('not found') && (
-            <FormError
-              type="info"
-              message="If you're sure this email is registered, please check your spam folder or try again later."
-              size="sm"
-            />
-          )}
-        </div>
+            {/* Additional help for common issues */}
+            {error && error.includes('not found') && (
+              <div 
+                className="p-3 rounded-lg border backdrop-blur-sm"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(59,130,246,0.05) 100%)',
+                  borderColor: 'rgba(59,130,246,0.2)',
+                  color: '#1e40af'
+                }}
+              >
+                <p className="text-xs font-medium">If you're sure this email is registered, please check your spam folder or try again later.</p>
+              </div>
+            )}
+          </div>
 
         {/* Email Input Section */}
         <div className="space-y-4">
@@ -188,28 +212,73 @@ const ForgotPassword: React.FC = () => {
           />
         </div>
 
-        {/* Primary Action Section */}
-        <div className="pt-2">
-          <LoadingButton
+        {/* Primary Action Section - Enhanced landing page style button */}
+        <div className="pt-4">
+          <button
             type="submit"
-            isLoading={isLoading}
-            disabled={!isValid && Object.keys(touched).length > 0}
-            loadingText="Sending reset email..."
-            variant="primary"
-            size="md"
-            icon={!isLoading ? <ArrowRight className="w-4 h-4 ml-2" /> : undefined}
+            disabled={isLoading || (!isValid && Object.keys(touched).length > 0)}
+            className="w-full relative group overflow-hidden rounded-xl font-semibold text-white transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
+            style={{
+              background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`,
+              boxShadow: `0 4px 14px 0 ${brandColors.primaryHex}40`
+            }}
           >
-            {emailSent ? 'Email Sent' : 'Send Reset Email'}
-          </LoadingButton>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+            <div className="relative px-6 py-4 flex items-center justify-center">
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white mr-3" />
+                  Sending reset email...
+                </>
+              ) : (
+                <>
+                  {emailSent ? 'Email Sent' : 'Send Reset Email'}
+                  <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:translate-x-1" />
+                </>
+              )}
+            </div>
+          </button>
         </div>
 
-        {/* Navigation Links */}
-        <div className="space-y-3 pt-4 border-t border-gray-200">
+        {/* Navigation Links - Enhanced styling */}
+        <div className="space-y-4 pt-4">
+          {/* Back to landing */}
+          <div className="text-center">
+            <Link
+              to="/"
+              className="text-sm text-slate-600 hover:text-slate-800 font-medium transition-colors"
+            >
+              ← Back to landing page
+            </Link>
+          </div>
+
+          {/* Enhanced divider */}
+          <div className="flex items-center gap-3 my-6">
+            <div 
+              className="h-px flex-1"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(156,163,175,0.5), transparent)' }}
+            />
+            <span className="text-xs sm:text-sm text-gray-500 font-medium px-3">or</span>
+            <div 
+              className="h-px flex-1"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(156,163,175,0.5), transparent)' }}
+            />
+          </div>
+
           {/* Back to Login */}
           <div className="text-center">
             <Link
               to="/login"
-              className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-2 py-2"
+              className="inline-flex items-center text-sm font-medium transition-all duration-200 hover:scale-[1.02]"
+              style={{ 
+                color: brandColors.primaryHex,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = brandColors.primaryHoverHex;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = brandColors.primaryHex;
+              }}
               aria-label="Back to sign in"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -223,7 +292,16 @@ const ForgotPassword: React.FC = () => {
               Don't have an account?{' '}
               <Link
                 to="/register"
-                className="text-blue-600 hover:text-blue-700 font-semibold transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded px-1 py-1"
+                className="font-semibold transition-all duration-200 hover:scale-[1.02]"
+                style={{ 
+                  color: brandColors.primaryHex,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = brandColors.primaryHoverHex;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = brandColors.primaryHex;
+                }}
                 aria-label="Create a new account"
               >
                 Create your account
@@ -231,7 +309,8 @@ const ForgotPassword: React.FC = () => {
             </p>
           </div>
         </div>
-      </form>
+        </form>
+      </div>
     </AuthLayout>
   );
 };

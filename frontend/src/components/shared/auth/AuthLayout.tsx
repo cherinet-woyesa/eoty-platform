@@ -1,6 +1,6 @@
 import React, { useEffect, useState, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Sparkles, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { brandColors } from '@/theme/brand';
 import Header from '@/components/shared/Landing/Header';
 import LanguageSelector from '@/components/common/LanguageSelector';
@@ -46,13 +46,39 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
         />
       </div>
 
-      {/* Animated Background Elements - Indigo glow */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0 opacity-40">
-        <div
-          className="absolute top-20 left-10 w-72 h-72 bg-[color:rgba(49,46,129,0.20)] rounded-full blur-3xl"
+      {/* Animated Background Elements - Enhanced landing page style */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        {/* Primary animated elements - matching landing page */}
+        <div 
+          className="absolute top-20 left-10 w-96 h-96 rounded-full blur-3xl animate-float opacity-30"
+          style={{ 
+            background: `linear-gradient(135deg, ${brandColors.primaryHex}33, ${brandColors.accentHex}22)`,
+            animationDuration: '10s'
+          }}
         />
-        <div
-          className="absolute bottom-20 left-1/3 w-80 h-80 bg-[color:rgba(30,27,75,0.18)] rounded-full blur-3xl"
+        <div 
+          className="absolute bottom-20 left-1/3 w-80 h-80 rounded-full blur-3xl animate-float opacity-25"
+          style={{ 
+            background: `linear-gradient(135deg, ${brandColors.accentHex}33, ${brandColors.primaryHex}22)`,
+            animationDuration: '12s',
+            animationDelay: '4s'
+          }}
+        />
+        {/* Additional subtle elements */}
+        <div 
+          className="absolute top-1/3 right-16 w-72 h-72 rounded-full blur-2xl animate-pulse opacity-20"
+          style={{ 
+            background: `linear-gradient(135deg, ${brandColors.primaryHex}25, transparent)`,
+            animationDuration: '8s'
+          }}
+        />
+        <div 
+          className="absolute bottom-1/3 right-1/4 w-64 h-64 rounded-full blur-2xl animate-pulse opacity-15"
+          style={{ 
+            background: `linear-gradient(135deg, ${brandColors.accentHex}25, transparent)`,
+            animationDuration: '6s',
+            animationDelay: '2s'
+          }}
         />
       </div>
 
@@ -64,13 +90,35 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
         <div className={`w-full max-w-md transform transition-all duration-700 ${
           isLoaded ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
         }`}>
-          {/* Auth Card with Glassmorphism */}
-          <div className="bg-white/95 backdrop-blur-xl rounded-[2rem] shadow-2xl border border-gray-100/80 overflow-hidden relative">
-            {/* Decorative top gradient */}
-            <div
-              className="absolute top-0 left-0 right-0 h-1.5"
-              style={{ background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})` }}
-            />
+          {/* Auth Card with Enhanced Glassmorphism - Landing Page Style */}
+          <div 
+            className="relative bg-white/90 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl border border-white/20 overflow-hidden transform transition-all duration-500 hover:shadow-3xl"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.85) 100%)',
+              boxShadow: `0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255,255,255,0.6)`
+            }}
+          >
+            {/* Enhanced decorative elements */}
+            <div className="absolute inset-0 opacity-50">
+              <div 
+                className="absolute top-0 left-0 w-full h-1 rounded-t-[2.5rem]"
+                style={{ 
+                  background: `linear-gradient(90deg, ${brandColors.primaryHex}, ${brandColors.accentHex}, ${brandColors.primaryHoverHex})`
+                }}
+              />
+              <div 
+                className="absolute top-2 left-2 w-32 h-32 rounded-full blur-3xl opacity-30"
+                style={{ 
+                  background: `radial-gradient(circle, ${brandColors.primaryHex}25, transparent 70%)`
+                }}
+              />
+              <div 
+                className="absolute bottom-2 right-2 w-24 h-24 rounded-full blur-2xl opacity-25"
+                style={{ 
+                  background: `radial-gradient(circle, ${brandColors.accentHex}25, transparent 70%)`
+                }}
+              />
+            </div>
             
             {/* Header Section */}
             <div className="px-8 pt-10 pb-6 text-center">
@@ -107,10 +155,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
 
               {/* Footer */}
               <div className="mt-6 pt-6 border-t border-slate-200/50">
-                <div className="flex items-center justify-center space-x-2 text-xs text-slate-500">
-                  <Shield className="h-4 w-4 text-[color:#1e1b4b]" />
-                  <span className="font-medium">Secure & encrypted</span>
-                </div>
+                
               </div>
             </div>
           </div>

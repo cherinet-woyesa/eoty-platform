@@ -1238,7 +1238,9 @@
     "login": {
       "title": "Sign in to your account",
       "subtitle": "Continue your learning journey and community activity.",
+      "email_label": "Email Address",
       "email_placeholder": "Enter your email",
+      "password_label": "Password",
       "password_placeholder": "Enter your password",
       "forgot_password": "Forgot Password?",
       "login_button": "Sign in to your account",

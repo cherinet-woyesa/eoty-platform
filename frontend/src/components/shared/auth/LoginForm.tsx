@@ -381,11 +381,11 @@ const LoginForm: React.FC = () => {
   }
 
   return (
-    <div className="relative" style={brandStyle}>
+    <div className="relative z-10" style={brandStyle}>
       {toast && (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
           <div
-            className="pointer-events-auto px-5 py-3 rounded-xl shadow-2xl border text-white text-sm font-semibold"
+            className="pointer-events-auto px-6 py-4 rounded-2xl shadow-2xl border text-white text-sm font-semibold backdrop-blur-xl"
             style={{
               background: toast.type === 'success'
                 ? `linear-gradient(120deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`
@@ -398,37 +398,57 @@ const LoginForm: React.FC = () => {
         </div>
       )}
     <form onSubmit={handleSubmit} className="space-y-6" noValidate aria-label="Login form">
-      {/* Messages Section - Prominent positioning at top */}
-      <div className="space-y-3">
+      {/* Messages Section - Enhanced styling */}
+      <div className="space-y-4">
         {/* Success Message */}
         {successMessage && (
-          <FormError
-            type="success"
-            message={successMessage}
-            autoDismiss={true}
-            autoDismissDelay={4000}
-            size="md"
-          />
+          <div 
+            className="p-4 rounded-xl border backdrop-blur-sm transform transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, rgba(34,197,94,0.1) 0%, rgba(34,197,94,0.05) 100%)',
+              borderColor: 'rgba(34,197,94,0.2)',
+              color: '#166534'
+            }}
+          >
+            <p className="text-sm font-medium">{successMessage}</p>
+          </div>
         )}
 
         {/* Error Message with enhanced feedback */}
         {error && (
-          <FormError
-            type="error"
-            message={error}
-            dismissible={true}
-            size="md"
-            onDismiss={() => setError(null)}
-          />
+          <div 
+            className="p-4 rounded-xl border backdrop-blur-sm transform transition-all duration-300"
+            style={{
+              background: 'linear-gradient(135deg, rgba(239,68,68,0.1) 0%, rgba(239,68,68,0.05) 100%)',
+              borderColor: 'rgba(239,68,68,0.2)',
+              color: '#991b1b'
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <p className="text-sm font-medium flex-1">{error}</p>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="ml-3 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                ×
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Retry count warning for multiple failed attempts */}
         {retryCount > 2 && !error?.includes('Network') && (
-          <FormError
-            type="warning"
-            message={t('auth.login.retry_help')}
-            size="sm"
-          />
+          <div 
+            className="p-3 rounded-lg border backdrop-blur-sm"
+            style={{
+              background: 'linear-gradient(135deg, rgba(245,158,11,0.1) 0%, rgba(245,158,11,0.05) 100%)',
+              borderColor: 'rgba(245,158,11,0.2)',
+              color: '#92400e'
+            }}
+          >
+            <p className="text-xs font-medium">{t('auth.login.retry_help')}</p>
+          </div>
         )}
       </div>
       
@@ -440,7 +460,7 @@ const LoginForm: React.FC = () => {
           id="email"
           name="email"
           type="email"
-          label="Email Address"
+          label={t('auth.login.email_label')}
           value={formData.email}
           onChange={handleChange}
           onBlur={handleBlur}
@@ -461,10 +481,11 @@ const LoginForm: React.FC = () => {
           id="password"
           name="password"
           type="password"
-          label="Password"
+          label={t('auth.login.password_label')}
           value={formData.password}
           onChange={handleChange}
           onBlur={handleBlur}
+          onKeyDown={handleKeyDown}
           error={errors.password}
           touched={touched.password}
           required
@@ -510,27 +531,46 @@ const LoginForm: React.FC = () => {
         </div>
       </div>
 
-      {/* Primary Action Section - Prominent submit button */}
-      <div className="pt-2">
-        <LoadingButton
+      {/* Primary Action Section - Enhanced landing page style button */}
+      <div className="pt-4">
+        <button
           type="submit"
-          isLoading={isLoading}
-          disabled={!isValid && Object.keys(touched).length > 0}
-          loadingText={t('auth.login.loading')}
-          variant="primary"
-          size="md"
-          icon={!isLoading ? <ArrowRight className="w-4 h-4 ml-2" /> : undefined}
+          disabled={isLoading || (!isValid && Object.keys(touched).length > 0)}
+          className="w-full relative group overflow-hidden rounded-xl font-semibold text-white transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
+          style={{
+            background: `linear-gradient(135deg, ${brandColors.primaryHex}, ${brandColors.primaryHoverHex})`,
+            boxShadow: `0 4px 14px 0 ${brandColors.primaryHex}40`
+          }}
         >
-          {t('auth.login.login_button')}
-        </LoadingButton>
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+          <div className="relative px-6 py-4 flex items-center justify-center">
+            {isLoading ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white/30 border-t-white mr-3" />
+                {t('auth.login.loading')}
+              </>
+            ) : (
+              <>
+                {t('auth.login.login_button')}
+                <ArrowRight className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:translate-x-1" />
+              </>
+            )}
+          </div>
+        </button>
       </div>
 
-      {/* Alternative Login Section */}
-      <div className="space-y-4 pt-2">
-        <div className="flex items-center gap-3 my-4">
-          <div className="h-px flex-1 bg-gray-200"></div>
-          <span className="text-xs sm:text-sm text-gray-500 font-medium">{t('auth.login.or_continue')}</span>
-          <div className="h-px flex-1 bg-gray-200"></div>
+      {/* Alternative Login Section - Enhanced divider */}
+      <div className="space-y-4 pt-4">
+        <div className="flex items-center gap-3 my-6">
+          <div 
+            className="h-px flex-1"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(156,163,175,0.5), transparent)' }}
+          />
+          <span className="text-xs sm:text-sm text-gray-500 font-medium px-3">{t('auth.login.or_continue')}</span>
+          <div 
+            className="h-px flex-1"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(156,163,175,0.5), transparent)' }}
+          />
         </div>
 
         <SocialLoginButtons 

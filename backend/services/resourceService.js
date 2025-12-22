@@ -66,19 +66,20 @@ class ResourceService {
       );
 
       // Store resource info in database
-      const [resourceRow] = await transaction('lesson_resources').insert({
+      const [resourceRow] = await transaction('resources').insert({
         lesson_id: lessonId,
-        filename: safeFileName,
+        title: originalFilename,
+          file_name: safeFileName,
         original_filename: originalFilename,
         file_type: fileExtension,
         file_size: fileBuffer.length,
         file_url: uploadResult.storageUrl || uploadResult.cdnUrl || uploadResult.signedUrl,
         description: description || null,
-        download_count: 0,
-        created_by: userId,
+        author: userId,
         created_at: new Date(),
-        updated_at: new Date()
-      }).returning(['id']);
+        updated_at: new Date(),
+        published_at: new Date()
+      }).returning('*');
 
       const resourceId = resourceRow.id;
 
@@ -114,12 +115,12 @@ class ResourceService {
    */
   async getResources(lessonId) {
     try {
-      const resources = await db('lesson_resources')
+      const resources = await db('resources')
         .where({ lesson_id: lessonId })
         .select(
           'id',
           'lesson_id',
-          'filename',
+            'file_name as filename',
           'original_filename',
           'file_type',
           'file_size',
@@ -158,7 +159,7 @@ class ResourceService {
           'resources.id',
           'resources.title',
           'resources.description',
-          'resources.file_name',
+            'resources.file_name as filename',
           'resources.file_type',
           'resources.file_size',
           'resources.file_url',
@@ -293,16 +294,16 @@ class ResourceService {
       transaction = await db.transaction();
 
       // Get resource with lesson and course info to verify access
-      const resource = await transaction('lesson_resources')
-        .join('lessons', 'lesson_resources.lesson_id', 'lessons.id')
+      const resource = await transaction('resources')
+        .join('lessons', 'resources.lesson_id', 'lessons.id')
         .join('courses', 'lessons.course_id', 'courses.id')
         .leftJoin('user_course_enrollments', function() {
           this.on('courses.id', '=', 'user_course_enrollments.course_id')
               .andOn('user_course_enrollments.user_id', '=', transaction.raw('?', [userId]));
         })
-        .where('lesson_resources.id', resourceId)
+        .where('resources.id', resourceId)
         .select(
-          'lesson_resources.*',
+          'resources.*',
           'courses.created_by as course_owner',
           'user_course_enrollments.user_id as enrolled_user'
         )
@@ -326,7 +327,7 @@ class ResourceService {
       const downloadUrl = await cloudStorageService.getSignedStreamUrl(s3Key, 3600);
 
       // Increment download count
-      await transaction('lesson_resources')
+      await transaction('resources')
         .where({ id: resourceId })
         .increment('download_count', 1);
 
@@ -364,12 +365,12 @@ class ResourceService {
       transaction = await db.transaction();
 
       // Get resource with lesson and course info to verify ownership
-      const resource = await transaction('lesson_resources')
-        .join('lessons', 'lesson_resources.lesson_id', 'lessons.id')
+      const resource = await transaction('resources')
+        .join('lessons', 'resources.lesson_id', 'lessons.id')
         .join('courses', 'lessons.course_id', 'courses.id')
-        .where('lesson_resources.id', resourceId)
+        .where('resources.id', resourceId)
         .where('courses.created_by', userId)
-        .select('lesson_resources.*', 'lesson_resources.file_url')
+        .select('resources.*', 'resources.file_url')
         .first();
 
       if (!resource) {
@@ -385,7 +386,7 @@ class ResourceService {
       }
 
       // Delete from database
-      await transaction('lesson_resources')
+      await transaction('resources')
         .where({ id: resourceId })
         .delete();
 
@@ -771,6 +772,7 @@ class ResourceService {
         tags: tags ? JSON.stringify(tags) : null,
         file_type: this.getResourceContentType(originalFilename),
         file_name: originalFilename,
+        original_filename: originalFilename,
         file_size: fileBuffer.length,
         file_url: fileUrl,
         resource_scope: resourceScope,
@@ -807,9 +809,43 @@ class ResourceService {
         throw new Error('Resource not found');
       }
 
-      // Check if user is author or admin
+      // Check if user is author, admin, or teacher with appropriate permissions
       const user = await db('users').where({ id: userId }).first();
-      if (resource.author !== userId && user.role !== 'admin') {
+      
+      // Allow if user is author or admin
+      if (resource.author === userId || user.role === 'admin') {
+        // Continue with update/delete
+      } else if (user.role === 'teacher') {
+        // Teachers can manage resources if they are course owners or lesson owners
+        if (resource.lesson_id) {
+          // Check if teacher owns the lesson through course ownership
+          const lesson = await db('lessons')
+            .join('courses', 'lessons.course_id', 'courses.id')
+            .where('lessons.id', resource.lesson_id)
+            .where('courses.created_by', userId)
+            .first();
+          if (!lesson) {
+            throw new Error('Access denied: You can only manage resources for your own lessons');
+          }
+        } else if (resource.course_id) {
+          // Check if teacher owns the course
+          const course = await db('courses').where({ id: resource.course_id, created_by: userId }).first();
+          if (!course) {
+            throw new Error('Access denied: You can only manage resources for your own courses');
+          }
+        } else if (resource.chapter_id) {
+          // Check if teacher belongs to the chapter
+          const userChapter = await db('user_chapters')
+            .where({ user_id: userId, chapter_id: resource.chapter_id, status: 'approved' })
+            .first();
+          if (!userChapter && user.chapter_id !== resource.chapter_id) {
+            throw new Error('Access denied: You can only manage resources in your chapter');
+          }
+        } else {
+          // Platform-wide resources require admin access
+          throw new Error('Access denied: Only admins can manage platform-wide resources');
+        }
+      } else {
         throw new Error('Access denied');
       }
 
@@ -857,9 +893,43 @@ class ResourceService {
         throw new Error('Resource not found');
       }
 
-      // Check if user is author or admin
+      // Check if user is author, admin, or teacher with appropriate permissions
       const user = await db('users').where({ id: userId }).first();
-      if (resource.author !== userId && user.role !== 'admin') {
+      
+      // Allow if user is author or admin
+      if (resource.author === userId || user.role === 'admin') {
+        // Continue with update/delete
+      } else if (user.role === 'teacher') {
+        // Teachers can manage resources if they are course owners or lesson owners
+        if (resource.lesson_id) {
+          // Check if teacher owns the lesson through course ownership
+          const lesson = await db('lessons')
+            .join('courses', 'lessons.course_id', 'courses.id')
+            .where('lessons.id', resource.lesson_id)
+            .where('courses.created_by', userId)
+            .first();
+          if (!lesson) {
+            throw new Error('Access denied: You can only manage resources for your own lessons');
+          }
+        } else if (resource.course_id) {
+          // Check if teacher owns the course
+          const course = await db('courses').where({ id: resource.course_id, created_by: userId }).first();
+          if (!course) {
+            throw new Error('Access denied: You can only manage resources for your own courses');
+          }
+        } else if (resource.chapter_id) {
+          // Check if teacher belongs to the chapter
+          const userChapter = await db('user_chapters')
+            .where({ user_id: userId, chapter_id: resource.chapter_id, status: 'approved' })
+            .first();
+          if (!userChapter && user.chapter_id !== resource.chapter_id) {
+            throw new Error('Access denied: You can only manage resources in your chapter');
+          }
+        } else {
+          // Platform-wide resources require admin access
+          throw new Error('Access denied: Only admins can manage platform-wide resources');
+        }
+      } else {
         throw new Error('Access denied');
       }
 

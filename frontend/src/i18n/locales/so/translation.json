@@ -462,12 +462,39 @@
   "auth": {
     "login": {
       "title": "Soo gal akoonkaaga",
+      "subtitle": "Sii wadnaadinta barashadaada iyo hawshaha bulshadaada",
       "email_placeholder": "Gali emailkaaga",
       "password_placeholder": "Gali furahaaga",
       "forgot_password": "Furaha ilaawday?",
-      "login_button": "Soo gal",
+      "login_button": "Soo gal akoonkaaga",
+      "loading": "Soo galka jira...",
       "no_account": "Akoon ma leedahay?",
-      "register_link": "Halkan iska diiwaan geli"
+      "register_link": "Halkan iska diiwaan geli",
+      "or_continue": "Ama sii wadnaad",
+      "remember_me": "Ixtimaam 30 maalmood ah",
+      "remember_me_desc": "Isla markaas ii xafiili 30 maalmood ah",
+      "twofa_title": "Xaqiijinta Laba Qaybood",
+      "twofa_subtitle": "Fadlan gali lambarka 6-raqam ee lagu diray emailkaaga",
+      "twofa_label": "Lambarka Xaqiijinta",
+      "twofa_placeholder": "123456",
+      "twofa_verify": "Xaqiiji Lambarka",
+      "twofa_verify_loading": "Xaqiijinta jira...",
+      "twofa_back": "Ku noqoso soo galka",
+      "retry_help": "Waa ku adag tahay inaad soo gasho? Iskuday furahaaga dib-u-heli ama nala soo xiriir haddii ay dhibaato sii socda",
+      "validation": {
+        "email_required": "Emailka waa looga baahan yahay",
+        "email_invalid": "Fadlan gali email sax ah",
+        "password_required": "Furaha waa looga baahan yahay",
+        "password_min": "Furaha waa inuu yahay ugu yaraan 6 xarf",
+        "code_invalid": "Fadlan gali lambarka 6-raqam ee sax ah"
+      },
+      "messages": {
+        "verified": "Xaqiijinta waa saxday! Soo galka dib-u-soo noqoshayada...",
+        "success": "Soo dhowow! Soo galka dashboardkaaga waa jira...",
+        "success_toast": "Soo galka waa guuleystay",
+        "google_password": "Akoonkan waxaa la sameeyay Google. Si aad u gasho furaha, fadlan",
+        "google_password_link": "halkan samee furaha"
+      }
     },
     "register": {
       "title": "Samee akoonkaaga",

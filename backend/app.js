@@ -9,6 +9,7 @@ const passport = require('./config/passport');
 // Import routes
 const authRoutes = require('./routes/auth');
 const courseRoutes = require('./routes/courses');
+const lessonsRoutes = require('./routes/lessons');
 const videoRoutes = require('./routes/videos');
 const studentRoutes = require('./routes/students');
 const quizRoutes = require('./routes/quizzes');
@@ -323,6 +324,7 @@ app.use('/api/knowledge-base', knowledgeBaseRoutes);
 
 // Protected routes
 app.use('/api/courses', authenticateToken, courseRoutes);
+app.use('/api/lessons', lessonsRoutes);
 app.use('/api/courses', subtitleRoutes); // Subtitle routes (authentication handled in route file)
 app.use('/api/courses', resourceRoutes); // Resource routes (authentication handled in route file)
 app.use('/api/students', authenticateToken, studentRoutes);

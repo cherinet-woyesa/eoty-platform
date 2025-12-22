@@ -57,7 +57,7 @@ const resourceController = {
       // Create entry in lesson_resources
       const [newResource] = await db('lesson_resources').insert({
         lesson_id: lessonId,
-        filename: resource.filename || resource.title,
+        filename: resource.file_name || resource.filename || resource.title,
         original_filename: resource.original_filename || resource.title,
         file_type: resource.file_type,
         file_size: resource.file_size,

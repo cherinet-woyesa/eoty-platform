@@ -393,7 +393,8 @@ router.get(
       const { lessonId } = req.params;
       const userId = req.user.userId;
       
-      const resources = await require('../models/Resource').findByLesson(lessonId, userId);
+      const { Resource } = require('../models/Resource');
+      const resources = await Resource.findByLesson(lessonId, userId);
       
       res.json({
         success: true,
@@ -428,7 +429,8 @@ router.post(
         });
       }
       
-      const updated = await require('../models/Resource').attachToLesson(resourceId, lessonId);
+      const { Resource } = require('../models/Resource');
+      const updated = await Resource.attachToLesson(resourceId, lessonId);
       
       res.json({
         success: true,
@@ -463,7 +465,8 @@ router.post(
         });
       }
       
-      const updated = await require('../models/Resource').detachFromLesson(resourceId);
+      const { Resource } = require('../models/Resource');
+      const updated = await Resource.detachFromLesson(resourceId);
       
       res.json({
         success: true,
