@@ -208,19 +208,45 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     };
   }, [statsData, course, lessons]);
 
+  const translateCategorySlug = useCallback(
+    (slug?: string | null) => {
+      if (!slug) return null;
+      const translationKey = `courses.categories.${slug}`;
+      const translated = t(translationKey);
+      if (translated !== translationKey) {
+        return translated;
+      }
+      return categories.find(cat => cat.slug === slug)?.name || null;
+    },
+    [categories, t]
+  );
+
+  const translateLevelSlug = useCallback(
+    (slug?: string | null) => {
+      if (!slug) return null;
+      const translationKey = `courses.levels.${slug}`;
+      const translated = t(translationKey);
+      if (translated !== translationKey) {
+        return translated;
+      }
+      return levels.find(level => level.slug === slug)?.name || null;
+    },
+    [levels, t]
+  );
+
   const resolvedCategoryLabel = useMemo(() => {
     if (!course) return null;
     const slug = course.category_slug || course.category;
     if (!slug) return null;
-    return categories.find(cat => cat.slug === slug)?.name || course.category || null;
-  }, [categories, course]);
+    return translateCategorySlug(slug) || course.category || null;
+  }, [course, translateCategorySlug]);
 
   const resolvedLevelLabel = useMemo(() => {
     if (!course) return null;
     const slug = course.level_slug || course.level;
     if (!slug) return null;
-    return levels.find(level => level.slug === slug)?.name || course.level || null;
-  }, [levels, course]);
+    return translateLevelSlug(slug) || course.level || null;
+  }, [course, translateLevelSlug]);
 
   const lastUpdatedLabel = useMemo(() => {
     if (!course?.updated_at) return null;
@@ -1582,13 +1608,17 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600">{t('common.category')}:</span>
                     <span className="font-medium">
-                      {categories.find(c => c.slug === formData.category)?.name}
+                      {translateCategorySlug(formData.category) ||
+                        categories.find(c => c.slug === formData.category)?.name ||
+                        t('common.not_set')}
                     </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <span className="text-gray-600">{t('common.level')}:</span>
                     <span className="font-medium">
-                      {levels.find(l => l.slug === formData.level)?.name}
+                      {translateLevelSlug(formData.level) ||
+                        levels.find(l => l.slug === formData.level)?.name ||
+                        t('common.not_set')}
                     </span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-100">
