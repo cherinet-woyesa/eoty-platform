@@ -167,6 +167,22 @@ export const authApi = {
   }
 };
 
+interface CourseCreationPayload {
+  title: string;
+  description: string;
+  category: string;
+  level?: string;
+  cover_image?: string | null;
+  isPublic?: boolean;
+  estimatedDuration?: string;
+  learningObjectives?: string[];
+  prerequisites?: string;
+  tags?: string[];
+  language?: string;
+  certificationAvailable?: boolean;
+  welcomeMessage?: string;
+}
+
 // Enhanced Courses API (with role checking)
 export const coursesApi = {
   // Get teacher's courses (supports filters/sort/pagination)
@@ -182,7 +198,7 @@ export const coursesApi = {
   },
 
   // Create new course
-  createCourse: async (courseData: { title: string; description?: string; category?: string; level?: string; cover_image?: string }) => {
+  createCourse: async (courseData: CourseCreationPayload) => {
     const response = await apiClient.post('/courses', courseData);
     return response.data;
   },

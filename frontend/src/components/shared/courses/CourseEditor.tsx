@@ -26,7 +26,6 @@ import {
   Users,
   Tag,
   Target,
-  Zap,
   ArrowLeft,
   RefreshCw,
   BarChart3,
@@ -91,35 +90,39 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState(false);
   const [newTagInput, setNewTagInput] = useState('');
-  const [courseStats, setCourseStats] = useState({
-    totalStudents: 0,
-    completionRate: 0,
-    averageRating: 0,
-    totalLessons: 0
-  });
 
   // Fetch course data
-  const { 
-    data: courseData, 
+  const {
+    data: course,
     isLoading: isLoadingCourse,
     error: courseError,
-    refetch: refetchCourse 
-  } = useQuery({
+    refetch: refetchCourse
+  } = useQuery<Course | null>({
     queryKey: ['course', courseId],
-    queryFn: () => coursesApi.getCourse(courseId),
+    queryFn: async () => {
+      const response = await coursesApi.getCourse(courseId);
+      return response?.data?.course ?? response?.data ?? null;
+    },
     enabled: !!courseId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
-
-  const course = courseData?.data?.course;
 
   // Fetch lessons
-  const { data: lessonsData, refetch: refetchLessons } = useQuery({
+  const {
+    data: lessons = [],
+    refetch: refetchLessons,
+    isLoading: isLoadingLessons
+  } = useQuery({
     queryKey: ['lessons', courseId],
-    queryFn: () => coursesApi.getLessons(courseId),
+    queryFn: async () => {
+      const response = await coursesApi.getLessons(courseId);
+      return response?.data?.lessons ?? response?.data ?? [];
+    },
     enabled: !!courseId,
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false
   });
-  
-  const lessons = lessonsData?.data?.lessons || [];
 
   // Add lesson handler
   const handleAddLesson = async () => {
@@ -145,26 +148,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     }
   };
 
-  // Debug: Log course data loading
-  console.log('CourseEditor render:', {
-    courseId,
-    isLoadingCourse,
-    courseError,
-    courseData,
-    courseDataType: typeof courseData,
-    courseDataKeys: courseData ? Object.keys(courseData) : null,
-    courseDataData: courseData?.data,
-    courseDataDataKeys: courseData?.data ? Object.keys(courseData.data) : null,
-    course,
-    courseType: typeof course
-  });
-
   // Fetch course statistics
   // Lazy-load analytics: only fetch when Analytics tab is active
   const { data: statsData } = useQuery({
     queryKey: ['course-stats', courseId],
     queryFn: () => coursesApi.getCourseAnalytics(courseId),
     enabled: !!courseId && !!course && activeTab === 'analytics',
+    refetchOnWindowFocus: false
   });
 
   // Fetch dynamic configuration options
@@ -172,55 +162,166 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     queryKey: ['system-config', 'categories', 'active'],
     queryFn: () => systemConfigApi.getCategories(true),
     staleTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false
   });
 
   const { data: levels = [], isLoading: isLoadingLevels } = useQuery({
     queryKey: ['system-config', 'levels', 'active'],
     queryFn: () => systemConfigApi.getLevels(true),
     staleTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false
   });
 
   const { data: durations = [], isLoading: isLoadingDurations } = useQuery({
     queryKey: ['system-config', 'durations', 'active'],
     queryFn: () => systemConfigApi.getDurations(true),
     staleTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false
   });
 
   const { data: tags = [], isLoading: isLoadingTags } = useQuery({
     queryKey: ['system-config', 'tags', 'active'],
     queryFn: () => systemConfigApi.getTags(true, 'usage'),
     staleTime: 1000 * 60 * 60,
+    refetchOnWindowFocus: false
   });
 
   const { data: languages = [] } = useQuery({
     queryKey: ['system-config', 'languages'],
     queryFn: () => systemConfigApi.getLanguages(),
     staleTime: 1000 * 60 * 60 * 24, // 24 hours
+    refetchOnWindowFocus: false
   });
+
+  const primaryChipClass = 'bg-[#1e1b4b]/10 text-[#1e1b4b] border border-[#1e1b4b]/30';
+  const subtleChipClass = 'bg-[#1e1b4b]/5 text-[#1e1b4b]/75 border border-[#1e1b4b]/20';
+
+  const courseStats = useMemo(() => {
+    const analytics = statsData?.data?.analytics;
+    const derivedLessons = analytics?.lessonCount ?? course?.lesson_count ?? lessons.length ?? 0;
+
+    return {
+      totalStudents: analytics?.totalEnrollments ?? analytics?.activeStudents ?? course?.student_count ?? 0,
+      completionRate: Number(analytics?.completionRate ?? course?.completion_rate ?? 0),
+      averageRating: analytics?.averageRating ?? course?.average_rating ?? 0,
+      totalLessons: derivedLessons
+    };
+  }, [statsData, course, lessons]);
+
+  const resolvedCategoryLabel = useMemo(() => {
+    if (!course) return null;
+    const slug = course.category_slug || course.category;
+    if (!slug) return null;
+    return categories.find(cat => cat.slug === slug)?.name || course.category || null;
+  }, [categories, course]);
+
+  const resolvedLevelLabel = useMemo(() => {
+    if (!course) return null;
+    const slug = course.level_slug || course.level;
+    if (!slug) return null;
+    return levels.find(level => level.slug === slug)?.name || course.level || null;
+  }, [levels, course]);
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!course?.updated_at) return null;
+    const updated = new Date(course.updated_at);
+    return updated.toLocaleString();
+  }, [course?.updated_at]);
+
+  const summaryCards = useMemo(() => (
+    [
+      {
+        id: 'students',
+        label: t('common.students'),
+        value: courseStats.totalStudents,
+        icon: Users
+      },
+      {
+        id: 'completion',
+        label: t('common.completion_rate'),
+        value: `${Math.round(courseStats.completionRate)}%`,
+        icon: Target
+      },
+      {
+        id: 'rating',
+        label: t('common.average_rating'),
+        value: courseStats.averageRating ? Number(courseStats.averageRating).toFixed(1) : '—',
+        icon: Award
+      },
+      {
+        id: 'lessons',
+        label: t('common.lessons'),
+        value: courseStats.totalLessons,
+        icon: BookOpen
+      }
+    ]
+  ), [courseStats, t]);
+
+  const hasSummaryStats = useMemo(() => (
+    courseStats.totalStudents > 0 ||
+    courseStats.completionRate > 0 ||
+    Number(courseStats.averageRating) > 0 ||
+    courseStats.totalLessons > 0
+  ), [courseStats]);
+
+  const statusLabel = useMemo(() => {
+    if (course?.status === 'published') return t('common.published');
+    if (course?.status === 'archived') return t('teacher_courses.status_archived');
+    if (course?.status === 'scheduled') return t('teacher_courses.status_scheduled');
+    return t('common.draft');
+  }, [course?.status, t]);
+
+  const statusClasses = useMemo(() => {
+    if (course?.status === 'archived') {
+      return 'bg-[#1e1b4b]/5 text-[#1e1b4b]/65 border border-[#1e1b4b]/20';
+    }
+    if (course?.status === 'draft') {
+      return subtleChipClass;
+    }
+    return primaryChipClass;
+  }, [course?.status, primaryChipClass, subtleChipClass]);
+
+  const visibilityLabel = useMemo(() => (
+    course?.is_public === false ? t('common.private') : t('common.public')
+  ), [course?.is_public, t]);
+
+  const visibilityClasses = useMemo(() => (
+    course?.is_public === false
+      ? subtleChipClass
+      : primaryChipClass
+  ), [course?.is_public, primaryChipClass, subtleChipClass]);
+
+  const metaChips = useMemo(() => {
+    const chips: Array<{ label: string; className: string }> = [
+      { label: statusLabel, className: statusClasses }
+    ];
+
+    if (visibilityLabel) {
+      chips.push({ label: visibilityLabel, className: visibilityClasses });
+    }
+
+    if (resolvedLevelLabel) {
+      chips.push({ label: resolvedLevelLabel, className: subtleChipClass });
+    }
+
+    if (resolvedCategoryLabel) {
+      chips.push({ label: resolvedCategoryLabel, className: subtleChipClass });
+    }
+
+    if (lastUpdatedLabel) {
+      chips.push({
+        label: `${t('common.last_updated', 'Last updated')}: ${lastUpdatedLabel}`,
+        className: 'bg-white text-gray-500 border border-gray-200'
+      });
+    }
+
+    return chips;
+  }, [statusLabel, statusClasses, visibilityLabel, visibilityClasses, resolvedLevelLabel, resolvedCategoryLabel, lastUpdatedLabel, t]);
 
   // Initialize form data when course loads
   useEffect(() => {
-    console.log('useEffect check:', {
-      hasCourse: !!course,
-      courseId: course?.id,
-      categoriesLength: categories.length,
-      levelsLength: levels.length,
-      languagesLength: languages.length
-    });
-
     // Initialize form when course data is available, even if dropdowns aren't loaded yet
     if (course && course.id) {
-      // Debug logging to see what data we're getting
-      console.log('Course data for form initialization:', {
-        category: course.category,
-        level: course.level,
-        estimated_duration: course.estimated_duration,
-        language: course.language,
-        availableCategories: categories.slice(0, 3).map(c => ({ id: c.id, slug: c.slug, name: c.name })),
-        availableLevels: levels.slice(0, 3).map(l => ({ id: l.id, slug: l.slug, name: l.name })),
-        availableLanguages: languages.slice(0, 3).map(l => ({ code: l.code, name: l.name }))
-      });
-
       // Find the correct category slug (use raw value if dropdowns not loaded)
       const categorySlug = categories.length > 0
         ? (categories.find(cat => cat.slug === course.category_slug || cat.slug === course.category || cat.id === course.category)?.slug || 'faith')
@@ -235,16 +336,6 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       const languageCode = languages.length > 0
         ? (languages.find(lang => lang.code === course.language_code || lang.code === course.language || lang.name === course.language)?.code || 'en')
         : (course.language_code || course.language || 'en');
-
-      console.log('Setting form data from course:', {
-        title: course.title,
-        description: course.description,
-        category: course.category,
-        level: course.level,
-        cover_image: course.cover_image,
-        learning_objectives: course.learning_objectives,
-        language: course.language
-      });
 
       setFormData({
         title: course.title || '',
@@ -263,27 +354,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
         status: (course.status as any) || 'draft'
       });
       setCoverImagePreview(course.cover_image || '');
-
-      console.log('Form data set successfully');
-    }
-
-    // Map analytics payload into compact stats used by the header/tabs
-    if (statsData?.data?.analytics) {
-      const analytics = statsData.data.analytics;
-      setCourseStats({
-        totalStudents: analytics.totalEnrollments ?? analytics.activeStudents ?? 0,
-        completionRate: Number(analytics.completionRate ?? 0),
-        averageRating: analytics.averageRating ?? 0,
-        totalLessons: analytics.lessonCount ?? 0
-      });
     }
   }, [course]); // Only depend on course data, not dropdown data
 
   // Update form when dropdown data loads (if course is already loaded)
   useEffect(() => {
     if (course && course.id && (categories.length > 0 || levels.length > 0 || languages.length > 0)) {
-      console.log('Updating form with loaded dropdown data');
-
       const categorySlug = categories.length > 0
         ? (categories.find(cat => cat.slug === course.category_slug || cat.slug === course.category || cat.id === course.category)?.slug || 'faith')
         : (course.category_slug || course.category || 'faith');
@@ -336,7 +412,9 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       coursesApi.updateCourse(courseId, data),
     onSuccess: (response) => {
       const updatedCourse = response.data.course;
-      queryClient.setQueryData(['course', courseId], response);
+      if (updatedCourse) {
+        queryClient.setQueryData(['course', courseId], updatedCourse);
+      }
       queryClient.invalidateQueries({ queryKey: ['courses'] });
       queryClient.invalidateQueries({ queryKey: ['course-stats', courseId] });
       
@@ -569,7 +647,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     onSuccess: (response) => {
       // Update local cache with the freshly published course
       if (response?.data?.course) {
-        queryClient.setQueryData(['course', courseId], response);
+        queryClient.setQueryData(['course', courseId], response.data.course);
       }
       queryClient.invalidateQueries({ queryKey: ['course', courseId] });
       queryClient.invalidateQueries({ queryKey: ['course-stats', courseId] });
@@ -593,7 +671,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
     onSuccess: (response) => {
       // Update local cache with the unpublished course
       if (response?.data?.course) {
-        queryClient.setQueryData(['course', courseId], response);
+        queryClient.setQueryData(['course', courseId], response.data.course);
       }
       queryClient.invalidateQueries({ queryKey: ['course', courseId] });
       queryClient.invalidateQueries({ queryKey: ['course-stats', courseId] });
@@ -656,7 +734,13 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   const [showObjectives, setShowObjectives] = useState(false);
   const [showTags, setShowTags] = useState(false);
 
-  const isLoading = isLoadingCourse || isLoadingCategories || isLoadingLevels || isLoadingDurations || isLoadingTags;
+  const isLoading =
+    isLoadingCourse ||
+    isLoadingLessons ||
+    isLoadingCategories ||
+    isLoadingLevels ||
+    isLoadingDurations ||
+    isLoadingTags;
 
   if (isLoading) {
     return (
@@ -699,141 +783,135 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   ];
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-      {/* Header */}
-      <div className="px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-b border-gray-200 bg-gray-50/50">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+    <div className="rounded-2xl border border-gray-200 shadow-lg overflow-hidden bg-white">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 border-b border-gray-200 bg-gray-50">
+        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
           <div className="flex items-start gap-3">
             <button
               onClick={() => navigate('/teacher/courses')}
-              className="p-2 bg-white hover:bg-gray-50 border border-gray-200 rounded-lg transition-colors"
+              className="p-2 rounded-xl border text-[#1e1b4b] border-[#1e1b4b]/30 bg-[#1e1b4b]/5 hover:bg-[#1e1b4b]/10 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1e1b4b]/30"
               title={t('common.back_to_courses')}
             >
-              <ArrowLeft className="h-5 w-5 text-gray-600" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-1 flex items-center text-gray-900">
-                <BookOpen className="h-5 w-5 mr-2" style={{ color: brandColors.primaryHex }} />
+              <p className="text-xs uppercase tracking-[0.35em] text-gray-400">
+                {t('courses.editor.edit_course')}
+              </p>
+              <h2 className="text-2xl sm:text-3xl font-semibold mt-1 flex items-center gap-2 text-gray-900">
+                <BookOpen className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
                 {course?.title || t('courses.editor.edit_course')}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-500 mt-1">
                 {t('courses.editor.update_course_details')}
               </p>
+              {metaChips.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {metaChips.map((chip, index) => (
+                    <span
+                      key={`${chip.label}-${index}`}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${chip.className}`}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            {/* Course Stats */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs sm:text-sm text-gray-600">
-              {courseStats.totalStudents > 0 && (
-                <div className="flex items-center gap-1">
-                  <Users className="h-4 w-4 text-gray-400" />
-                  <span>{courseStats.totalStudents} {t('common.students')}</span>
-                </div>
-              )}
-              {courseStats.completionRate > 0 && (
-                <div className="flex items-center gap-1">
-                  <Target className="h-4 w-4 text-gray-400" />
-                  <span>{courseStats.completionRate}% {t('common.completion')}</span>
-                </div>
-              )}
-              {courseStats.averageRating > 0 && (
-                <div className="flex items-center gap-1">
-                  <Zap className="h-4 w-4 text-gray-400" />
-                  <span>{courseStats.averageRating}/5 {t('common.rating')}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1">
-                <BookOpen className="h-4 w-4 text-gray-400" />
-                <span>{courseStats.totalLessons} {t('common.lessons')}</span>
+          <div className="flex flex-col items-start gap-3 text-gray-700 w-full lg:w-auto">
+            {isDirty && (
+              <div className="flex items-center text-xs px-3 py-1.5 rounded-full border border-[#1e1b4b]/30 bg-[#1e1b4b]/10 text-[#1e1b4b]">
+                {isAutoSaving ? (
+                  <>
+                    <Loader className="h-3.5 w-3.5 mr-2 animate-spin" />
+                    {t('common.saving')}...
+                  </>
+                ) : lastSaved ? (
+                  <>
+                    <CheckCircle className="h-3.5 w-3.5 mr-2" style={{ color: brandColors.primaryHex }} />
+                    {t('common.saved')} {lastSaved.toLocaleTimeString()}
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="h-3.5 w-3.5 mr-2" style={{ color: brandColors.primaryHex }} />
+                    {t('common.unsaved_changes')}
+                  </>
+                )}
               </div>
-            </div>
+            )}
 
-            {/* Status and Actions */}
-            <div className="flex items-center gap-2">
-              {/* Course Status */}
-              <div className={`px-3 py-1.5 rounded-lg text-xs font-medium ${
-                course?.status === 'published' 
-                  ? 'bg-green-100 text-green-800 border border-green-200' 
-                  : 'bg-gray-100 text-gray-800 border border-gray-200'
-              }`}>
-                {course?.status === 'published' ? t('common.published') : t('common.draft')}
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => navigate(`/teacher/courses/${courseId}`)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <Eye className="h-4 w-4" />
+                {t('common.view')}
+              </button>
 
-              {/* Save Indicator */}
-              {isDirty && (
-                <div className="hidden sm:flex items-center text-xs bg-white px-3 py-1.5 rounded-lg border border-gray-200">
-                  {isAutoSaving ? (
-                    <>
-                      <Loader className="h-3.5 w-3.5 mr-1 animate-spin text-gray-400" />
-                      {t('common.saving')}...
-                    </>
-                  ) : lastSaved ? (
-                    <>
-                      <CheckCircle className="h-3.5 w-3.5 mr-1 text-green-500" />
-                      {t('common.saved')} {lastSaved.toLocaleTimeString()}
-                    </>
-                  ) : (
-                    <>
-                      <AlertCircle className="h-3.5 w-3.5 mr-1 text-amber-500" />
-                      {t('common.unsaved_changes')}
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+              {course?.status === 'draft' && (
                 <button
-                  onClick={() => navigate(`/teacher/courses/${courseId}`)}
-                  className="inline-flex items-center px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                  onClick={handlePublish}
+                  disabled={publishMutation.isPending}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+                  style={{ backgroundColor: brandColors.primaryHex }}
                 >
-                  <Eye className="mr-1.5 h-3.5 w-3.5" />
-                  {t('common.view')}
+                  <Globe className="h-4 w-4" />
+                  {publishMutation.isPending ? t('common.publishing') : t('common.publish')}
                 </button>
-                
-                {course?.status === 'draft' && (
-                  <button
-                    onClick={handlePublish}
-                    disabled={publishMutation.isPending}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white disabled:opacity-50 transition-colors"
-                    style={{ backgroundColor: brandColors.primaryHex }}
-                  >
-                    <Globe className="mr-1.5 h-3.5 w-3.5" />
-                    {publishMutation.isPending ? t('common.publishing') : t('common.publish')}
-                  </button>
-                )}
+              )}
 
-                {course?.status === 'published' && (
-                  <button
-                    onClick={handleUnpublish}
-                    disabled={unpublishMutation.isPending}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50 transition-colors"
-                  >
-                    <Globe className="mr-1.5 h-3.5 w-3.5" />
-                    {unpublishMutation.isPending ? t('common.unpublishing') : t('common.unpublish')}
-                  </button>
-                )}
+              {course?.status === 'published' && (
+                <button
+                  onClick={handleUnpublish}
+                  disabled={unpublishMutation.isPending}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50"
+                  style={{ backgroundColor: brandColors.primaryHex }}
+                >
+                  <Globe className="h-4 w-4" />
+                  {unpublishMutation.isPending ? t('common.unpublishing') : t('common.unpublish')}
+                </button>
+              )}
 
-                {onCancel && (
-                  <button
-                    onClick={onCancel}
-                    className="inline-flex items-center px-3 py-1.5 border border-gray-200 text-xs font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-                  >
-                    <X className="mr-1.5 h-3.5 w-3.5" />
-                    {t('common.cancel')}
-                  </button>
-                )}
-              </div>
+              {onCancel && (
+                <button
+                  onClick={onCancel}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-200 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  <X className="h-4 w-4" />
+                  {t('common.cancel')}
+                </button>
+              )}
             </div>
           </div>
         </div>
+
+        {hasSummaryStats && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+            {summaryCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <div
+                  key={card.id}
+                  className="rounded-xl border border-[#1e1b4b]/20 bg-[#1e1b4b]/5 p-4 flex flex-col gap-1"
+                >
+                  <div className="flex items-center gap-2 text-xs font-medium" style={{ color: `${brandColors.primaryHex}cc` }}>
+                    <Icon className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
+                    {card.label}
+                  </div>
+                  <div className="text-2xl font-semibold" style={{ color: brandColors.primaryHex }}>{card.value}</div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-100 bg-white">
         <div className="px-4 sm:px-6 lg:px-8">
-          <nav className="flex space-x-4 sm:space-x-6 lg:space-x-8 overflow-x-auto">
+          <nav className="flex space-x-4 overflow-x-auto">
             {editorTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -841,7 +919,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                  className={`py-4 px-1 border-b-2 font-semibold text-sm transition-colors whitespace-nowrap ${
                     isActive
                       ? 'border-[#1e1b4b] text-[#1e1b4b]'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -857,7 +935,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
       </div>
 
       {/* Content */}
-      <div className="p-6 sm:p-8">
+      <div className="p-6 sm:p-8 bg-white">
         {activeTab === 'basic' && (
           <div className="space-y-6">
             {/* Course Title */}
@@ -953,7 +1031,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                     <button
                       type="button"
                       onClick={handleRemoveCoverImage}
-                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors shadow-lg"
+                      className="absolute top-2 right-2 p-2 text-white rounded-full transition-colors shadow-lg"
+                      style={{ backgroundColor: brandColors.primaryHex }}
                     >
                       <X className="h-4 w-4" />
                     </button>
@@ -1257,11 +1336,11 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             {/* Privacy Settings */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <div className="flex items-start space-x-4">
-                <div className={`p-3 rounded-lg ${formData.is_public ? 'bg-green-100' : 'bg-blue-100'}`}>
+                <div className={`p-3 rounded-lg ${formData.is_public ? 'bg-[#1e1b4b]/10' : 'bg-gray-100'}`}>
                   {formData.is_public ? (
-                    <Globe className="h-6 w-6 text-green-600" />
+                    <Globe className="h-6 w-6" style={{ color: brandColors.primaryHex }} />
                   ) : (
-                    <Lock className="h-6 w-6 text-blue-600" />
+                    <Lock className="h-6 w-6 text-gray-500" />
                   )}
                 </div>
                 <div className="flex-1">
@@ -1281,7 +1360,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       type="button"
                       onClick={() => handleChange('is_public', !formData.is_public)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formData.is_public ? 'bg-green-600' : 'bg-blue-600'
+                        formData.is_public ? 'bg-[#1e1b4b]' : 'bg-gray-300'
                       }`}
                     >
                       <span
@@ -1298,8 +1377,8 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             {/* Certification */}
             <div className="bg-white border border-gray-200 rounded-xl p-6">
               <div className="flex items-start space-x-4">
-                <div className={`p-3 rounded-lg ${formData.certification_available ? 'bg-purple-100' : 'bg-gray-100'}`}>
-                  <Award className={`h-6 w-6 ${formData.certification_available ? 'text-purple-600' : 'text-gray-400'}`} />
+                <div className={`p-3 rounded-lg ${formData.certification_available ? 'bg-[#1e1b4b]/10' : 'bg-gray-100'}`}>
+                  <Award className={`h-6 w-6 ${formData.certification_available ? 'text-[#1e1b4b]' : 'text-gray-400'}`} />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between">
@@ -1315,7 +1394,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                       type="button"
                       onClick={() => handleChange('certification_available', !formData.certification_available)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        formData.certification_available ? 'bg-purple-600' : 'bg-gray-300'
+                        formData.certification_available ? 'bg-[#1e1b4b]' : 'bg-gray-300'
                       }`}
                     >
                       <span
@@ -1350,21 +1429,21 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <div className="space-y-6">
             {/* Course Statistics */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-                <div className="text-2xl font-bold text-indigo-900">{courseStats.totalStudents}</div>
-                <div className="text-sm text-indigo-700">{t('common.students')}</div>
+              <div className="rounded-xl p-4 border border-[#1e1b4b]/20 bg-[#1e1b4b]/5">
+                <div className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{courseStats.totalStudents}</div>
+                <div className="text-sm" style={{ color: `${brandColors.primaryHex}cc` }}>{t('common.students')}</div>
               </div>
-              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-                <div className="text-2xl font-bold text-indigo-900">{courseStats.completionRate}%</div>
-                <div className="text-sm text-indigo-700">{t('common.completion_rate')}</div>
+              <div className="rounded-xl p-4 border border-[#1e1b4b]/20 bg-[#1e1b4b]/5">
+                <div className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{courseStats.completionRate}%</div>
+                <div className="text-sm" style={{ color: `${brandColors.primaryHex}cc` }}>{t('common.completion_rate')}</div>
               </div>
-              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-                <div className="text-2xl font-bold text-indigo-900">{courseStats.averageRating}</div>
-                <div className="text-sm text-indigo-700">{t('common.average_rating')}</div>
+              <div className="rounded-xl p-4 border border-[#1e1b4b]/20 bg-[#1e1b4b]/5">
+                <div className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{courseStats.averageRating}</div>
+                <div className="text-sm" style={{ color: `${brandColors.primaryHex}cc` }}>{t('common.average_rating')}</div>
               </div>
-              <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
-                <div className="text-2xl font-bold text-indigo-900">{courseStats.totalLessons}</div>
-                <div className="text-sm text-indigo-700">{t('common.lessons')}</div>
+              <div className="rounded-xl p-4 border border-[#1e1b4b]/20 bg-[#1e1b4b]/5">
+                <div className="text-2xl font-bold" style={{ color: brandColors.primaryHex }}>{courseStats.totalLessons}</div>
+                <div className="text-sm" style={{ color: `${brandColors.primaryHex}cc` }}>{t('common.lessons')}</div>
               </div>
             </div>
 
@@ -1404,15 +1483,25 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
 
                 {/* Lesson-by-lesson breakdown */}
                 <div className="mt-6">
-                  <h4 className="text-md font-semibold text-gray-900 mb-3">Lesson Breakdown</h4>
+                  <h4 className="text-md font-semibold text-gray-900 mb-3">
+                    {t('courses.editor.lesson_breakdown')}
+                  </h4>
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lesson</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Views</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completions</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Completion Rate</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {t('common.lesson')}
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {t('common.views')}
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {t('courses.editor.completions')}
+                          </th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {t('common.completion_rate')}
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -1434,7 +1523,7 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                         )) || (
                           <tr>
                             <td colSpan={4} className="px-4 py-8 text-center text-sm text-gray-500">
-                              No lesson data available yet
+                              {t('courses.editor.no_lesson_data')}
                             </td>
                           </tr>
                         )}
@@ -1446,8 +1535,12 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             ) : (
               <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
                 <BarChart3 className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                <h3 className="text-lg font-medium text-gray-600">No analytics data yet</h3>
-                <p className="text-gray-500 text-sm mt-1">Analytics will appear here once students enroll and start learning.</p>
+                <h3 className="text-lg font-medium text-gray-600">
+                  {t('courses.editor.analytics_empty_title')}
+                </h3>
+                <p className="text-gray-500 text-sm mt-1">
+                  {t('courses.editor.analytics_empty_description')}
+                </p>
               </div>
             )}
 
@@ -1455,10 +1548,10 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
             <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-xl p-6 text-center border border-gray-200">
               <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Advanced Analytics Coming Soon
+                {t('courses.editor.analytics_future_title')}
               </h3>
               <p className="text-gray-600 text-sm">
-                We're working on detailed analytics including student progress tracking, engagement metrics, and performance insights.
+                {t('courses.editor.analytics_future_description')}
               </p>
             </div>
           </div>
@@ -1527,14 +1620,15 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
           <button
             type="button"
             onClick={() => navigate('/teacher/courses')}
-            className="px-6 py-3 border border-gray-200 text-gray-700 font-medium rounded-xl hover:bg-gray-50 transition-all"
+            className="inline-flex items-center gap-2 px-6 py-3 border font-medium rounded-xl text-[#1e1b4b] border-[#1e1b4b]/40 bg-white hover:bg-[#1e1b4b]/5 transition-all shadow-sm focus:outline-none focus:ring-2 focus:ring-[#1e1b4b]/30"
           >
+            <ArrowLeft className="h-4 w-4" />
             {t('common.back_to_courses')}
           </button>
           <LoadingButton
             loading={updateMutation.isPending}
             onClick={handleSave}
-            className="inline-flex items-center px-6 py-3 text-white font-medium rounded-xl transition-all shadow-lg"
+            className="inline-flex items-center px-6 py-3 text-white font-medium rounded-xl transition-all shadow-lg whitespace-nowrap"
             style={{ backgroundColor: brandColors.primaryHex }}
           >
             <Save className="h-5 w-5 mr-2" />

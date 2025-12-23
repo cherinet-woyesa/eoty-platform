@@ -4,7 +4,7 @@ import {
   BookOpen, Plus, Search, Video, Users,
   Sparkles,
   AlertCircle, RefreshCw, Grid, List,
-  SortAsc, SortDesc, Edit
+  SortAsc, SortDesc, Edit, Loader2
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { coursesApi } from '@/services/api';
@@ -12,6 +12,7 @@ import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { BulkActions } from '@/components/shared/courses/BulkActions';
 import type { Course } from '@/types/courses';
 import { brandColors } from '@/theme/brand';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 interface CourseStats {
   totalCourses: number;
@@ -30,13 +31,27 @@ interface MyCoursesProps {
   onCreateClick?: () => void;
 }
 
+interface TeacherCoursesResponse {
+  courses: Course[];
+  pagination: {
+    page: number;
+    perPage: number;
+    total: number;
+    totalPages: number;
+  };
+  counts?: {
+    total?: number;
+    published?: number;
+    draft?: number;
+    archived?: number;
+  };
+}
+
 const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick }) => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(() => searchParams.get('q') || '');
   const [filterCategory, setFilterCategory] = useState(() => searchParams.get('cat') || 'all');
   const [sortBy, setSortBy] = useState(() => searchParams.get('sort') || 'created_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => (searchParams.get('order') as 'asc' | 'desc') || 'desc');
@@ -45,11 +60,9 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
     const status = searchParams.get('status');
     return status === 'drafts' ? 'draft' : (status || 'all');
   });
-  const [stats, setStats] = useState<CourseStats | null>(null);
   const [selectedCourses, setSelectedCourses] = useState<number[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
   const [currentPage, setCurrentPage] = useState(() => Number(searchParams.get('page')) || 1);
-  const [totalAvailable, setTotalAvailable] = useState(0);
   const itemsPerPage = 12;
 
   // Reset pagination when filters change
@@ -90,13 +103,25 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
     { value: 'total_duration', label: t('teacher_courses.sort_by_duration') }
   ], [t]);
 
-  const loadCourses = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
+
+  const {
+    data: coursesPayload,
+    isLoading,
+    isFetching,
+    isError,
+    error: queryError,
+    refetch
+  } = useQuery<TeacherCoursesResponse>({
+    queryKey: ['teacher-courses', debouncedSearchTerm, filterCategory, activeTab, sortBy, sortOrder, currentPage],
+    queryFn: async () => {
       const response = await coursesApi.getCourses({
-        q: searchTerm || undefined,
+        q: debouncedSearchTerm || undefined,
         category: filterCategory !== 'all' ? filterCategory : undefined,
         status: activeTab !== 'all' ? activeTab : undefined,
         sortBy,
@@ -104,40 +129,54 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
         page: currentPage,
         perPage: itemsPerPage
       });
-      
-      if (response.success) {
-        const coursesData = response.data.courses || response.data || [];
-        setCourses(coursesData);
 
-        const paginationMeta = response.data?.pagination || {};
-        setTotalAvailable(paginationMeta.total ?? coursesData.length);
-
-        const counts = response.data?.counts || {};
-        const courseStats: CourseStats = {
-          totalCourses: counts.total ?? coursesData.length,
-          activeStudents: coursesData.reduce((sum: number, course: Course) => sum + (course.student_count || 0), 0),
-          recordedVideos: coursesData.reduce((sum: number, course: Course) => sum + (course.lesson_count || 0), 0),
-          hoursTaught: Math.round(coursesData.reduce((sum: number, course: Course) => sum + (course.total_duration || 0), 0) / 60),
-          publishedCourses: counts.published ?? coursesData.filter((course: Course) => course.is_published || course.status === 'published').length,
-          averageRating: coursesData.length ? Math.round((coursesData.reduce((sum: number, course: Course) => sum + (course.average_rating || 4.8), 0) / coursesData.length) * 10) / 10 : 0,
-          completionRate: coursesData.length ? Math.round(coursesData.reduce((sum: number, course: Course) => sum + (course.completion_rate || 0), 0) / coursesData.length) : 0,
-          draftCourses: counts.draft ?? coursesData.filter((course: Course) => (!course.is_published && course.status !== 'archived') || course.status === 'draft').length,
-          archivedCourses: counts.archived ?? coursesData.filter((course: Course) => course.status === 'archived').length
-        };
-
-        setStats(courseStats);
+      if (!response?.success) {
+        throw new Error(response?.message || 'Failed to load courses');
       }
-    } catch (err) {
-      console.error('Failed to load courses:', err);
-      setError(t('teacher_courses.load_courses_fail'));
-    } finally {
-      setLoading(false);
-    }
-  }, [searchTerm, filterCategory, activeTab, sortBy, sortOrder, currentPage, itemsPerPage, t]);
 
-  useEffect(() => {
-    loadCourses();
-  }, [loadCourses]);
+      return response.data || response;
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 60_000
+  });
+
+  const courses: Course[] = coursesPayload?.courses ?? [];
+  const paginationMeta = coursesPayload?.pagination ?? {
+    page: currentPage,
+    perPage: itemsPerPage,
+    total: courses.length,
+    totalPages: Math.max(1, Math.ceil(Math.max(courses.length, 1) / itemsPerPage))
+  };
+  const counts = coursesPayload?.counts;
+  const totalAvailable = paginationMeta.total ?? courses.length;
+
+  const stats = useMemo<CourseStats | null>(() => {
+    if (!courses.length && !counts) {
+      return null;
+    }
+
+    const totalCourses = counts?.total ?? courses.length;
+    const activeStudents = courses.reduce((sum, course) => sum + (course.student_count || 0), 0);
+    const recordedVideos = courses.reduce((sum, course) => sum + (course.lesson_count || 0), 0);
+    const hoursTaught = Math.round(courses.reduce((sum, course) => sum + (course.total_duration || 0), 0) / 60);
+    const publishedCourses = counts?.published ?? courses.filter(course => course.is_published || course.status === 'published').length;
+    const averageRating = courses.length ? Math.round((courses.reduce((sum, course) => sum + (course.average_rating || 4.8), 0) / courses.length) * 10) / 10 : 0;
+    const completionRate = courses.length ? Math.round(courses.reduce((sum, course) => sum + (course.completion_rate || 0), 0) / courses.length) : 0;
+    const draftCourses = counts?.draft ?? courses.filter(course => (!course.is_published && course.status !== 'archived') || course.status === 'draft').length;
+    const archivedCourses = counts?.archived ?? courses.filter(course => course.status === 'archived').length;
+
+    return {
+      totalCourses,
+      activeStudents,
+      recordedVideos,
+      hoursTaught,
+      publishedCourses,
+      averageRating,
+      completionRate,
+      draftCourses,
+      archivedCourses
+    };
+  }, [courses, counts]);
 
   // Use backend-filtered/paginated courses directly
   const filteredAndSortedCourses = useMemo(() => courses, [courses]);
@@ -156,7 +195,11 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
 
   const paginatedCourses = useMemo(() => filteredAndSortedCourses, [filteredAndSortedCourses]);
 
-  const totalPages = Math.max(1, Math.ceil((totalAvailable || courses.length) / itemsPerPage));
+  const totalPages = paginationMeta.totalPages ?? Math.max(1, Math.ceil((totalAvailable || courses.length) / itemsPerPage));
+
+  useEffect(() => {
+    setSelectedCourses([]);
+  }, [debouncedSearchTerm, filterCategory, activeTab, sortBy, sortOrder, currentPage, paginationMeta.total]);
 
   const getStatus = useCallback((course: Course) => {
     const now = new Date();
@@ -224,15 +267,31 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
       {viewMode === 'grid' ? (
         // Compact Grid View
         <Link to={`/teacher/courses/${course.id}`} className="block h-full">
-          <div className="relative h-40 bg-gray-100">
+          <div className="relative overflow-hidden bg-gray-900 rounded-t-xl aspect-[5/3]">
             {course.cover_image ? (
-              <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" loading="lazy" />
+              <>
+                <img
+                  src={course.cover_image}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 w-full h-full object-cover blur-lg scale-110 opacity-60"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <img
+                    src={course.cover_image}
+                    alt={course.title}
+                    className="max-w-full max-h-full object-contain drop-shadow"
+                    loading="lazy"
+                  />
+                </div>
+              </>
             ) : (
-              <div className={`w-full h-full bg-gradient-to-br ${getCategoryColor(course.category)} flex items-center justify-center`}>
+              <div className={`absolute inset-0 bg-gradient-to-br ${getCategoryColor(course.category)} flex items-center justify-center`}>
                 <BookOpen className="h-10 w-10 text-white/60" />
               </div>
             )}
-            <div className="absolute bottom-2 right-2">
+            <div className="absolute bottom-3 right-3">
               <span className={`px-2 py-1 text-xs font-bold rounded-full shadow-sm ${
                 getStatus(course) === 'published'
                   ? 'bg-green-100 text-green-800'
@@ -266,9 +325,18 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
       ) : (
         // List View
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-900 relative">
              {course.cover_image ? (
-              <img src={course.cover_image} alt={course.title} className="w-full h-full object-cover" loading="lazy" />
+              <>
+                <img
+                  src={course.cover_image}
+                  alt=""
+                  aria-hidden
+                  className="absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-60"
+                  loading="lazy"
+                />
+                <img src={course.cover_image} alt={course.title} className="relative w-full h-full object-contain drop-shadow-sm" loading="lazy" />
+              </>
             ) : (
               <div className={`w-full h-full bg-gradient-to-br ${getCategoryColor(course.category)} flex items-center justify-center`}>
                 <BookOpen className="h-5 w-5 text-white/60" />
@@ -321,17 +389,18 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
     }
   };
 
-  if (loading) {
+  if (isLoading && !coursesPayload) {
     return <div className="flex items-center justify-center h-96"><LoadingSpinner text={t('common.loading')} /></div>;
   }
 
-  if (error) {
+  if (isError) {
+    const friendlyMessage = queryError instanceof Error ? queryError.message : t('teacher_courses.generic_error', 'Something went wrong.');
     return (
       <div className="flex flex-col items-center justify-center h-96 bg-red-50 text-red-700 rounded-lg p-4">
         <AlertCircle className="h-8 w-8 mb-2" />
         <p className="font-semibold">{t('common.error')}</p>
-        <p>{error}</p>
-        <button onClick={() => loadCourses()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center">
+        <p>{friendlyMessage}</p>
+        <button onClick={() => refetch()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 flex items-center">
           <RefreshCw className="h-4 w-4 mr-2" />
           {t('common.try_again')}
         </button>
@@ -419,7 +488,13 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => loadCourses()} className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"><RefreshCw className="h-4 w-4" /></button>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-60"
+            >
+              {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            </button>
             <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg">
               <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Grid className="h-4 w-4" /></button>
               <button onClick={() => setViewMode('list')} className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><List className="h-4 w-4" /></button>
@@ -477,7 +552,7 @@ const MyCourses: React.FC<MyCoursesProps> = ({ hideHeader = false, onCreateClick
           selectedCourses={selectedCourses}
           onActionComplete={() => {
             setSelectedCourses([]);
-            loadCourses();
+            refetch();
           }}
           onClearSelection={() => setSelectedCourses([])}
         />

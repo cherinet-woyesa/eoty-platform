@@ -1,4 +1,8 @@
 const db = require('../config/database');
+const gcsService = require('../services/gcsService');
+const fs = require('fs').promises;
+const path = require('path');
+const crypto = require('crypto');
 
 const courseController = {
   // Get single course by ID with statistics
@@ -222,7 +226,26 @@ const courseController = {
 
       coursesQuery.limit(perPageNum).offset(offset);
 
-      const processedCourses = await coursesQuery;
+      const rawCourses = await coursesQuery;
+
+      const processedCourses = rawCourses.map(course => {
+        if (!course) return course;
+        if (!course.level) {
+          try {
+            const metadata = course.metadata
+              ? (typeof course.metadata === 'string'
+                  ? JSON.parse(course.metadata)
+                  : course.metadata)
+              : {};
+            if (metadata && metadata.level && !course.level) {
+              course.level = metadata.level.toString().toLowerCase();
+            }
+          } catch (err) {
+            console.warn('Failed to hydrate course level from metadata:', err.message);
+          }
+        }
+        return course;
+      });
 
       // We need total count for pagination.
       let countQuery = db('courses as c');
@@ -334,6 +357,10 @@ const courseController = {
         isPublic
       } = req.body;
 
+      const normalizedLevel = typeof level === 'string'
+        ? level.toLowerCase().trim()
+        : null;
+
       // Title validation is handled by middleware, but double-check
       if (!title) {
         return res.status(400).json({
@@ -344,8 +371,8 @@ const courseController = {
 
       // Prepare metadata for optional fields that don't have dedicated columns
       const metadata = {};
-      if (level) {
-        metadata.level = level;
+      if (normalizedLevel) {
+        metadata.level = normalizedLevel;
       }
       if (cover_image) {
         metadata.coverImage = cover_image;
@@ -381,6 +408,7 @@ const courseController = {
           title,
           description,
           category,
+          level: normalizedLevel || null,
           cover_image: cover_image || null,
           is_public: isPublic !== undefined ? isPublic : true,
           created_by: teacherId,
@@ -658,6 +686,10 @@ const courseController = {
         status
       } = req.body;
 
+      const normalizedLevel = level === undefined
+        ? undefined
+        : (typeof level === 'string' ? level.toLowerCase().trim() : level);
+
       // Check if course exists and user has permission
       const course = await db('courses').where({ id: courseId }).first();
 
@@ -705,7 +737,7 @@ const courseController = {
       }
 
       if (level !== undefined) {
-        metadata.level = level;
+        metadata.level = normalizedLevel || null;
       }
       if (cover_image !== undefined) {
         metadata.coverImage = cover_image;
@@ -752,6 +784,9 @@ const courseController = {
       }
       if (cover_image !== undefined) {
         updateData.cover_image = cover_image;
+      }
+      if (level !== undefined) {
+        updateData.level = normalizedLevel || null;
       }
 
       // Update metadata for fields stored there
@@ -1935,7 +1970,25 @@ const courseController = {
     try {
       const userId = req.user.userId;
 
-      const courses = await db('courses as c')
+      const {
+        level,
+        category,
+        q,
+        search,
+        sort = 'title',
+        order = 'asc'
+      } = req.query || {};
+
+      const normalizedLevel = (level || '').toString().toLowerCase();
+      const normalizedCategory = (category || '').toString().toLowerCase();
+      const searchTerm = (q || search || '').toString().trim();
+      const allowedSorts = ['title', 'students', 'created_at'];
+      const sortField = allowedSorts.includes((sort || '').toString().toLowerCase())
+        ? (sort || '').toString().toLowerCase()
+        : 'title';
+      const sortDirection = (order || '').toString().toLowerCase() === 'desc' ? 'desc' : 'asc';
+
+      const catalogQuery = db('courses as c')
         .leftJoin('lessons as l', 'c.id', 'l.course_id')
         .leftJoin('user_course_enrollments as uce', function () {
           this.on('c.id', '=', 'uce.course_id')
@@ -1961,6 +2014,59 @@ const courseController = {
           db.raw('CASE WHEN bm.id IS NOT NULL THEN true ELSE false END as is_bookmarked'),
           db.raw("CONCAT(u.first_name, ' ', u.last_name) as created_by_name")
         );
+
+      if (normalizedCategory && normalizedCategory !== 'all') {
+        catalogQuery.andWhere(function () {
+          this.whereRaw("LOWER(COALESCE(c.category, '')) = ?", [normalizedCategory])
+            .orWhereRaw("LOWER(COALESCE(c.category, '')) LIKE ?", [`%${normalizedCategory}%`]);
+        });
+      }
+
+      if (normalizedLevel && normalizedLevel !== 'all') {
+        catalogQuery.andWhere(function () {
+          this.whereRaw("LOWER(COALESCE(c.level, '')) = ?", [normalizedLevel])
+            .orWhereRaw("LOWER(COALESCE(c.level, '')) LIKE ?", [`%${normalizedLevel}%`])
+            .orWhereRaw("LOWER(COALESCE(c.metadata->>'level', '')) = ?", [normalizedLevel])
+            .orWhereRaw("LOWER(COALESCE(c.metadata->>'level', '')) LIKE ?", [`%${normalizedLevel}%`]);
+        });
+      }
+
+      if (searchTerm) {
+        catalogQuery.andWhere(function () {
+          this.whereILike('c.title', `%${searchTerm}%`).orWhereILike('c.description', `%${searchTerm}%`);
+        });
+      }
+
+      if (sortField === 'students') {
+        const directionSql = sortDirection === 'desc' ? 'DESC' : 'ASC';
+        catalogQuery.orderByRaw(`COUNT(DISTINCT CASE WHEN uce.user_id != ? THEN uce.user_id END) ${directionSql}`, [userId]);
+      } else if (sortField === 'created_at') {
+        catalogQuery.orderBy('c.created_at', sortDirection);
+      } else {
+        const directionSql = sortDirection === 'desc' ? 'DESC' : 'ASC';
+        catalogQuery.orderByRaw(`LOWER(c.title) ${directionSql}`);
+      }
+
+      const catalogResults = await catalogQuery;
+
+      const courses = catalogResults.map(course => {
+        if (!course) return course;
+        if (!course.level) {
+          try {
+            const metadata = course.metadata
+              ? (typeof course.metadata === 'string'
+                  ? JSON.parse(course.metadata)
+                  : course.metadata)
+              : {};
+            if (metadata && metadata.level && !course.level) {
+              course.level = metadata.level.toString().toLowerCase();
+            }
+          } catch (err) {
+            console.warn('Failed to hydrate catalog course level:', err.message);
+          }
+        }
+        return course;
+      });
 
       res.json({
         success: true,
@@ -2369,54 +2475,104 @@ courseController.uploadCourseImage = async function (req, res) {
       });
     }
 
+    const loadUploadedFileBuffer = async () => {
+      if (req.file.buffer) {
+        return req.file.buffer;
+      }
+
+      if (req.file.path) {
+        try {
+          const data = await fs.readFile(req.file.path);
+          // Remove temp file written by multer disk storage to avoid orphaned files
+          try {
+            await fs.unlink(req.file.path);
+          } catch (cleanupError) {
+            console.warn('Failed to cleanup temp upload:', cleanupError.message);
+          }
+          return data;
+        } catch (readError) {
+          console.error('Failed to read uploaded file from disk:', readError);
+          return null;
+        }
+      }
+
+      return null;
+    };
+
+    const fileBuffer = await loadUploadedFileBuffer();
+
+    if (!fileBuffer) {
+      console.error('Uploaded course image is missing buffer data');
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process uploaded image'
+      });
+    }
+
     let imageUrl;
 
     console.log('Attempting to upload image...');
 
+    // Try GCS first so behavior matches profile picture storage
     try {
-      // Try to upload to cloud storage first
-      console.log('Trying cloud storage upload...');
-      const cloudStorageService = require('../services/cloudStorageService');
-      imageUrl = await cloudStorageService.uploadCourseImage(
-        req.file.buffer,
-        req.file.originalname,
-        req.file.mimetype,
-        courseId
+      console.log('Trying GCS upload...');
+      imageUrl = await gcsService.uploadFile(
+        {
+          buffer: fileBuffer,
+          originalname: req.file.originalname || `course-${courseId}.jpg`,
+          mimetype: req.file.mimetype
+        },
+        'profiles/courses'
       );
-      console.log('Cloud storage upload successful:', imageUrl);
-    } catch (cloudError) {
-      console.warn('Cloud storage upload failed, falling back to local storage:', cloudError.message);
-      console.log('Attempting local storage fallback...');
+      console.log('GCS upload successful:', imageUrl);
+    } catch (gcsError) {
+      console.warn('GCS upload failed, will try course storage service:', gcsError.message);
+    }
 
-      // Fallback to local storage (similar to profile images)
-      const fs = require('fs').promises;
-      const path = require('path');
-      const crypto = require('crypto');
-
+    if (!imageUrl) {
       try {
-        // Generate unique filename
-        const fileExtension = path.extname(req.file.originalname) || '.jpg';
-        const uniqueFilename = `course_${courseId}_${crypto.randomBytes(8).toString('hex')}${fileExtension}`;
-        const uploadDir = path.join(__dirname, '../uploads/courses');
-        const filePath = path.join(uploadDir, uniqueFilename);
+        console.log('Trying cloud storage upload...');
+        const cloudStorageService = require('../services/cloudStorageService');
+        imageUrl = await cloudStorageService.uploadCourseImage(
+          fileBuffer,
+          req.file.originalname,
+          req.file.mimetype,
+          courseId
+        );
+        console.log('Cloud storage upload successful:', imageUrl);
+      } catch (cloudError) {
+        console.warn('Cloud storage upload failed, falling back to local storage:', cloudError.message);
+        console.log('Attempting local storage fallback...');
 
-        console.log('Local upload path:', { uploadDir, filePath });
+        try {
+          // Generate unique filename
+          const fileExtension = path.extname(req.file.originalname) || '.jpg';
+          const uniqueFilename = `course_${courseId}_${crypto.randomBytes(8).toString('hex')}${fileExtension}`;
+          const uploadDir = path.join(__dirname, '../uploads/courses');
+          const filePath = path.join(uploadDir, uniqueFilename);
 
-        // Ensure upload directory exists
-        await fs.mkdir(uploadDir, { recursive: true });
+          console.log('Local upload path:', { uploadDir, filePath });
 
-        // Write file
-        await fs.writeFile(filePath, req.file.buffer);
+          // Ensure upload directory exists
+          await fs.mkdir(uploadDir, { recursive: true });
 
-        // Generate URL (similar to profile images)
-        const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
-        imageUrl = `${baseUrl}/uploads/courses/${uniqueFilename}`;
+          // Write file
+          await fs.writeFile(filePath, fileBuffer);
 
-        console.log('Local storage upload successful:', imageUrl);
-      } catch (localError) {
-        console.error('Local storage upload also failed:', localError);
-        throw localError;
+          // Generate URL (similar to profile images)
+          const baseUrl = process.env.API_BASE_URL || `http://localhost:${process.env.PORT || 5000}`;
+          imageUrl = `${baseUrl}/uploads/courses/${uniqueFilename}`;
+
+          console.log('Local storage upload successful:', imageUrl);
+        } catch (localError) {
+          console.error('Local storage upload also failed:', localError);
+          throw localError;
+        }
       }
+    }
+
+    if (!imageUrl) {
+      throw new Error('Failed to store course cover image');
     }
 
     console.log('Updating course in database:', { courseId, imageUrl });

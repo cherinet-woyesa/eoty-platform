@@ -453,6 +453,8 @@
   "common": {
     "overview": "Overview",
     "search_lessons": "Search lessons...",
+    "show": "Show",
+    "hide": "Hide",
     "next": "Next",
     "skip": "Skip",
     "back": "Back",
@@ -569,6 +571,7 @@
     "done": "Done",
     "pending": "Pending",
     "select_duration": "Select duration",
+    "duration_minutes_seconds": "{{minutes}}m {{seconds}}s",
     "hide_preview": "Hide Preview",
     "show_preview": "Show Preview",
     "back_to_courses": "Back to Courses",
@@ -654,6 +657,9 @@
     "total_duration": "Total Duration",
     "all_types": "All Types",
     "sort": "Sort",
+    "apply": "Apply",
+    "applying": "Applying...",
+    "clear": "Clear",
     "order": "Order",
     "type": "Type",
     "status": "Status",
@@ -1154,7 +1160,14 @@
       "select_from_suggestions": "Select from suggestions",
       "analytics_coming_soon": "Analytics Coming Soon",
       "detailed_analytics_description": "Detailed analytics and insights for your course performance will be available here.",
-      "course_preview": "Course Preview"
+      "course_preview": "Course Preview",
+      "lesson_breakdown": "Lesson Breakdown",
+      "completions": "Completions",
+      "no_lesson_data": "No lesson data available yet",
+      "analytics_empty_title": "No analytics data yet",
+      "analytics_empty_description": "Analytics will appear here once students enroll and start learning.",
+      "analytics_future_title": "Advanced Analytics Coming Soon",
+      "analytics_future_description": "We're working on detailed analytics including student progress tracking, engagement metrics, and performance insights."
     },
     "categories": {
       "faith": "Faith & Doctrine",
@@ -4115,6 +4128,24 @@
       "cover_upload_failed": "Failed to upload cover image",
       "draft_saved": "Draft saved at {{time}}",
       "draft_save_error": "Failed to save draft"
+    },
+    "editor": {
+      "course_updated": "Course updated successfully",
+      "fix_errors_before_save": "Please fix all errors before saving",
+      "min_one_objective": "At least one learning objective is required",
+      "course_published": "Course published successfully",
+      "course_unpublished": "Course unpublished successfully",
+      "unsaved_changes_warning": "You have unsaved changes. Are you sure you want to leave?",
+      "basic_info": "Basic Info",
+      "content": "Content",
+      "settings": "Settings",
+      "analytics": "Analytics",
+      "edit_course": "Edit Course",
+      "update_course_details": "Update your course details",
+      "select_from_suggestions": "Select from suggestions",
+      "analytics_coming_soon": "Analytics Coming Soon",
+      "detailed_analytics_description": "Detailed analytics and insights for your course performance will be available here.",
+      "course_preview": "Course Preview"
     },
     "categories": {
       "faith": "Faith & Doctrine",

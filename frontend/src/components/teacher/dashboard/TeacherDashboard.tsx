@@ -561,9 +561,11 @@ const TeacherDashboard: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="w-full space-y-3 sm:space-y-4 p-3 sm:p-4 lg:p-6 bg-gray-50 min-h-screen">
+      <div className="w-full min-h-screen bg-gray-50">
+        <div className="w-full space-y-4 p-4 lg:p-6">
+          <div className="w-full rounded-3xl border border-gray-200 bg-white/90 shadow-xl backdrop-blur-sm p-4 sm:p-6 lg:p-8 space-y-6">
         {/* Welcome Section */}
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+        <section className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-2 mb-1">
@@ -611,12 +613,16 @@ const TeacherDashboard: React.FC = () => {
               </Link>
             </div>
           </div>
-        </div>
+        </section>
 
-       
+        <section className="rounded-2xl border border-gray-100 bg-white/70 p-4">
+          <TeacherMetrics stats={teacherData} />
+        </section>
+
+
 
         {teacherData.totalCourses === 0 && !isLoading && (
-          <section className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">
+          <section className="rounded-2xl border border-dashed border-amber-200 bg-white/80 p-8 text-center shadow-sm">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-gray-50 border border-gray-100">
               <BookOpen className="h-8 w-8 text-gray-400" />
             </div>
@@ -638,7 +644,7 @@ const TeacherDashboard: React.FC = () => {
         )}
 
         {user?.role === 'teacher' && user.profileCompletion && !user.profileCompletion.isComplete && (
-          <section className="flex flex-col gap-4 rounded-xl border border-amber-200 bg-amber-50 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <section className="flex flex-col gap-4 rounded-2xl border border-amber-200/80 bg-amber-50/80 p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="text-sm font-semibold text-amber-900">
                 {t('dashboard.teacher.complete_profile_title')}
@@ -664,7 +670,7 @@ const TeacherDashboard: React.FC = () => {
           </section>
         )}
 
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-100 bg-white/80 p-6 shadow-sm">
           <div className="flex items-center justify-between gap-3 mb-4">
             <h3 className="text-lg font-semibold text-gray-900">
               {t('dashboard.teacher.quick_actions')}
@@ -737,175 +743,182 @@ const TeacherDashboard: React.FC = () => {
           </div>
         </section>
 
-        <section className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-gray-50 p-2 text-gray-600">
-                  <Megaphone className="h-5 w-5" />
+        <section className="rounded-2xl border border-gray-100 bg-white/80 p-4">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-gray-50 p-2 text-gray-600">
+                    <Megaphone className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {t('dashboard.teacher.announcements')}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {t('dashboard.teacher.announcements_desc')}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
-                    {t('dashboard.teacher.announcements')}
-                  </h3>
-                  <p className="text-xs text-gray-500">
-                    {t('dashboard.teacher.announcements_desc')}
-                  </p>
-                </div>
+                {announcementsLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                ) : (
+                  <span className="text-xs text-gray-500">
+                    {activeChapterName
+                      ? t('dashboard.teacher.chapter_scope', {
+                          chapter: activeChapterName,
+                          defaultValue: `Chapter · ${activeChapterName}`
+                        })
+                      : t('dashboard.teacher.global_scope', 'Global updates')}
+                  </span>
+                )}
               </div>
+
               {announcementsLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                <div className="space-y-3">
+                  {[1, 2, 3].map((skeleton) => (
+                    <div key={skeleton} className="h-20 rounded-lg border border-gray-100 bg-gray-50 animate-pulse" />
+                  ))}
+                </div>
+              ) : announcements.length > 0 ? (
+                <div className="space-y-3">
+                  {announcements.map((item) => {
+                    const badgeClasses = item.source === 'chapter'
+                      ? 'bg-blue-50 text-blue-700 border-blue-100'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                    return (
+                      <div key={item.id} className="rounded-lg border border-gray-100 p-4 hover:border-gray-200 transition">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.body}</p>
+                          </div>
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badgeClasses}`}>
+                            {item.source === 'chapter'
+                              ? t('dashboard.teacher.chapter_label', 'Chapter')
+                              : t('dashboard.teacher.global_label', 'Global')}
+                          </span>
+                        </div>
+                        <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
+                          <span>{formatDateTime(item.createdAt)}</span>
+                          {item.priority && (
+                            <span className="uppercase tracking-wide text-gray-400">
+                              {t('dashboard.teacher.priority', 'Priority')}: {item.priority}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                <span className="text-xs text-gray-500">
-                  {activeChapterName
-                    ? t('dashboard.teacher.chapter_scope', {
-                        chapter: activeChapterName,
-                        defaultValue: `Chapter · ${activeChapterName}`
-                      })
-                    : t('dashboard.teacher.global_scope', 'Global updates')}
-                </span>
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                  {t('dashboard.teacher.no_announcements', 'No announcements just yet.')}
+                </div>
               )}
             </div>
-            {announcementsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((skeleton) => (
-                  <div key={skeleton} className="h-20 rounded-lg border border-gray-100 bg-gray-50 animate-pulse" />
-                ))}
+
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-lg bg-gray-50 p-2 text-gray-600">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.teacher.events')}</h3>
+                    <p className="text-xs text-gray-500">{t('dashboard.teacher.events_desc')}</p>
+                  </div>
+                </div>
+                {eventsLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                ) : (
+                  <span className="text-xs text-gray-500">
+                    {t('dashboard.teacher.upcoming_count', {
+                      count: events.length,
+                      defaultValue: `${events.length} upcoming`
+                    })}
+                  </span>
+                )}
               </div>
-            ) : announcements.length > 0 ? (
-              <div className="space-y-3">
-                {announcements.map((item) => {
-                  const badgeClasses = item.source === 'chapter'
-                    ? 'bg-blue-50 text-blue-700 border-blue-100'
-                    : 'bg-emerald-50 text-emerald-700 border-emerald-100';
-                  return (
-                    <div key={item.id} className="rounded-lg border border-gray-100 p-4 hover:border-gray-200 transition">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.body}</p>
-                        </div>
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badgeClasses}`}>
-                          {item.source === 'chapter'
-                            ? t('dashboard.teacher.chapter_label', 'Chapter')
-                            : t('dashboard.teacher.global_label', 'Global')}
-                        </span>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
-                        <span>{formatDateTime(item.createdAt)}</span>
-                        {item.priority && (
-                          <span className="uppercase tracking-wide text-gray-400">
-                            {t('dashboard.teacher.priority', 'Priority')}: {item.priority}
+
+              {eventsLoading ? (
+                <div className="space-y-3">
+                  {[1, 2, 3].map((skeleton) => (
+                    <div key={skeleton} className="h-24 rounded-lg border border-gray-100 bg-gray-50 animate-pulse" />
+                  ))}
+                </div>
+              ) : events.length > 0 ? (
+                <div className="space-y-3">
+                  {events.map((event) => {
+                    const badgeClasses = event.source === 'chapter'
+                      ? 'bg-blue-50 text-blue-700 border-blue-100'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                    return (
+                      <div key={event.id} className="rounded-lg border border-gray-100 p-4 hover:border-gray-200 transition">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="space-y-1">
+                            <p className="text-sm font-semibold text-gray-900">{event.title}</p>
+                            {event.description && (
+                              <p className="text-xs text-gray-500 line-clamp-2">{event.description}</p>
+                            )}
+                            <div className="text-[11px] text-gray-500 space-y-0.5">
+                              <p>{formatDateTime(event.startTime)}</p>
+                              {event.location && (
+                                <p>
+                                  {event.isOnline
+                                    ? `${event.location} · ${t('dashboard.teacher.online', 'Online')}`
+                                    : event.location}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badgeClasses}`}>
+                            {event.source === 'chapter'
+                              ? t('dashboard.teacher.chapter_label', 'Chapter')
+                              : t('dashboard.teacher.global_label', 'Global')}
                           </span>
+                        </div>
+                        {event.meetingLink && (
+                          <a
+                            href={event.meetingLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                          >
+                            {t('dashboard.teacher.join_event', 'Open details')}
+                            <span className="ml-1" aria-hidden="true">→</span>
+                          </a>
                         )}
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
-                {t('dashboard.teacher.no_announcements', 'No announcements just yet.')}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-gray-50 p-2 text-gray-600">
-                  <Calendar className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.teacher.events')}</h3>
-                  <p className="text-xs text-gray-500">{t('dashboard.teacher.events_desc')}</p>
-                </div>
-              </div>
-              {eventsLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-              ) : (
-                <span className="text-xs text-gray-500">
-                  {t('dashboard.teacher.upcoming_count', {
-                    count: events.length,
-                    defaultValue: `${events.length} upcoming`
+                    );
                   })}
-                </span>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                  {t('dashboard.teacher.no_events', 'No upcoming events.')}
+                </div>
               )}
             </div>
-            {eventsLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((skeleton) => (
-                  <div key={skeleton} className="h-24 rounded-lg border border-gray-100 bg-gray-50 animate-pulse" />
-                ))}
-              </div>
-            ) : events.length > 0 ? (
-              <div className="space-y-3">
-                {events.map((event) => {
-                  const badgeClasses = event.source === 'chapter'
-                    ? 'bg-blue-50 text-blue-700 border-blue-100'
-                    : 'bg-emerald-50 text-emerald-700 border-emerald-100';
-                  return (
-                    <div key={event.id} className="rounded-lg border border-gray-100 p-4 hover:border-gray-200 transition">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <p className="text-sm font-semibold text-gray-900">{event.title}</p>
-                          {event.description && (
-                            <p className="text-xs text-gray-500 line-clamp-2">{event.description}</p>
-                          )}
-                          <div className="text-[11px] text-gray-500 space-y-0.5">
-                            <p>{formatDateTime(event.startTime)}</p>
-                            {event.location && (
-                              <p>
-                                {event.isOnline
-                                  ? `${event.location} · ${t('dashboard.teacher.online', 'Online')}`
-                                  : event.location}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badgeClasses}`}>
-                          {event.source === 'chapter'
-                            ? t('dashboard.teacher.chapter_label', 'Chapter')
-                            : t('dashboard.teacher.global_label', 'Global')}
-                        </span>
-                      </div>
-                      {event.meetingLink && (
-                        <a
-                          href={event.meetingLink}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-3 inline-flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-900"
-                        >
-                          {t('dashboard.teacher.join_event', 'Open details')}
-                          <span className="ml-1" aria-hidden="true">→</span>
-                        </a>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
-                {t('dashboard.teacher.no_events', 'No upcoming events.')}
-              </div>
-            )}
           </div>
         </section>
+          </div>
+        </div>
       </div>
-      
+
       <CreateAnnouncementModal
         isOpen={showAnnouncementModal}
         onClose={() => setShowAnnouncementModal(false)}
         onSuccess={handleAnnouncementCreated}
         type="teacher"
       />
-      
+
       <CreateEventModal
         isOpen={showEventModal}
         onClose={() => setShowEventModal(false)}
         onSuccess={handleEventCreated}
         type="teacher"
       />
+
     </ErrorBoundary>
   );
 };

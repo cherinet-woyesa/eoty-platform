@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { brandColors } from '@/theme/brand';
+import { useQueryClient } from '@tanstack/react-query';
 
 // Types
 interface CourseFormData {
@@ -58,6 +59,7 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
@@ -243,26 +245,15 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
         result = await coursesApi.createCourse(courseData);
       }
 
-      // Handle cover image upload if present
-      if (coverImageFile && result.data?.id) {
-        setCoverUploadStatus('uploading');
-        try {
-          await coursesApi.uploadCourseImage(result.data.id, coverImageFile);
-          setCoverUploadStatus('success');
-        } catch (uploadError: any) {
-          console.warn('Failed to upload cover image:', uploadError);
-          setCoverUploadStatus('error');
-          setCoverUploadError(
-            uploadError?.response?.data?.message ||
-            uploadError?.message ||
-            t('courses.creation.cover_upload_failed')
-          );
-          // Continue without blocking main success
-        }
+      const resultCourseId = result?.data?.course?.id || result?.data?.id || (courseId ? Number(courseId) : null);
+
+      if (coverImageFile && resultCourseId) {
+        void handleCoverUpload(String(resultCourseId), coverImageFile);
       }
 
-      // Clear the teacher dashboard cache to force a refresh of course counts
+      // Clear caches so dashboards/my courses refresh with the new data
       dataCache.delete('teacher_dashboard');
+      await queryClient.invalidateQueries({ queryKey: ['teacher-courses'] });
       
       setSuccess(true);
       
@@ -313,6 +304,24 @@ const CourseCreationForm: React.FC<CourseCreationFormProps> = ({
       setIsSubmitting(false);
     }
   };
+
+  const handleCoverUpload = useCallback(async (targetCourseId: string, file: File) => {
+    setCoverUploadStatus('uploading');
+    setCoverUploadError(null);
+    try {
+      await coursesApi.uploadCourseImage(targetCourseId, file);
+      setCoverUploadStatus('success');
+      await queryClient.invalidateQueries({ queryKey: ['teacher-courses'] });
+    } catch (uploadError: any) {
+      console.warn('Failed to upload cover image:', uploadError);
+      setCoverUploadStatus('error');
+      setCoverUploadError(
+        uploadError?.response?.data?.message ||
+        uploadError?.message ||
+        t('courses.creation.cover_upload_failed')
+      );
+    }
+  }, [queryClient, t]);
 
   const handleChange = useCallback((
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>

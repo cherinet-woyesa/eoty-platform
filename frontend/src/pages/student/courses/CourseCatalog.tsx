@@ -68,7 +68,14 @@ const CourseCatalog: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.get('/courses/catalog');
+      const response = await apiClient.get('/courses/catalog', {
+        params: {
+          q: debouncedSearch || undefined,
+          category: filterCategory !== 'all' ? filterCategory : undefined,
+          level: filterLevel !== 'all' ? filterLevel : undefined,
+          sort: sortBy
+        }
+      });
 
       if (response.data.success) {
         setCourses(response.data.data.courses || []);
@@ -79,7 +86,7 @@ const CourseCatalog: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, [t, debouncedSearch, filterCategory, filterLevel, sortBy]);
 
   const loadInvitations = useCallback(async () => {
     try {
@@ -105,8 +112,11 @@ const CourseCatalog: React.FC = () => {
 
   useEffect(() => {
     loadCatalog();
+  }, [loadCatalog]);
+
+  useEffect(() => {
     loadInvitations();
-  }, [loadCatalog, loadInvitations]);
+  }, [loadInvitations]);
 
   // Debounce search
   useEffect(() => {
@@ -232,7 +242,7 @@ const CourseCatalog: React.FC = () => {
   const renderCourseCard = useCallback((course: CatalogCourse) => (
     <div key={course.id} className="bg-white/90 backdrop-blur-md rounded-lg border border-stone-200 overflow-hidden hover:shadow-md transition-all duration-200 hover:border-[color:#1e1b4b]">
       {/* Compact Course Header */}
-      <div className={`relative h-32 ${!course.cover_image ? `bg-gradient-to-r ${getCategoryColor(course.category)}` : 'bg-stone-200'}`}>
+      <div className={`relative overflow-hidden rounded-t-lg aspect-[5/3] ${!course.cover_image ? `bg-gradient-to-r ${getCategoryColor(course.category)}` : 'bg-stone-200'}`}>
         {course.cover_image && (
           <>
             <img
@@ -246,7 +256,7 @@ const CourseCatalog: React.FC = () => {
           </>
         )}
 
-        <div className={`absolute inset-0 p-3 flex flex-col justify-end ${!course.cover_image ? 'text-white' : 'text-white'}`}>
+        <div className="absolute inset-0 p-3 flex flex-col justify-end text-white">
           <h3 className="text-sm font-bold mb-0.5 line-clamp-2 drop-shadow-sm">{course.title}</h3>
           <p className="text-white/90 text-xs line-clamp-2 opacity-90 drop-shadow-sm">
             {course.description || t('student_courses.no_description')}
