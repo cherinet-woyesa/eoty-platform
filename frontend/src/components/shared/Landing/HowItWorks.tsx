@@ -120,7 +120,7 @@ const HowItWorks = forwardRef<HTMLElement, HowItWorksProps>(({ landingContent, v
             {/* Connecting Line for Large Screens */}
             <div className="hidden lg:block absolute top-1/2 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-gray-200 to-transparent -translate-y-1/2 z-0 dashed-line"></div>
             
-            {landingContent['how-it-works']?.steps?.map((step: any, index: number) =>
+            {landingContent?.howItWorks?.steps?.map((step: any, index: number) =>
               renderHowItWorksStep(step, index)
             ) || [
               { step: '01', title: t('landing.how.defaults.0.title'), description: t('landing.how.defaults.0.desc'), icon: 'User', features: [t('landing.how.defaults.0.f1'), t('landing.how.defaults.0.f2'), t('landing.how.defaults.0.f3')] },

@@ -71,26 +71,21 @@ const LoginForm: React.FC = () => {
   });
 
   // Debounced validation for real-time feedback
-  const [validationTimers, setValidationTimers] = useState<Record<string, NodeJS.Timeout>>({});
+  const validationTimersRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const debouncedValidate = useCallback((fieldName: keyof LoginFormData, value: string) => {
-    // Clear existing timer for this field
-    if (validationTimers[fieldName]) {
-      clearTimeout(validationTimers[fieldName]);
+    const timers = validationTimersRef.current;
+    if (timers[fieldName]) {
+      clearTimeout(timers[fieldName]);
     }
 
-    // Set new timer
     const timer = setTimeout(() => {
       if (touched[fieldName]) {
         validateField(fieldName, value);
       }
     }, 300);
-
-    setValidationTimers(prev => ({
-      ...prev,
-      [fieldName]: timer,
-    }));
-  }, [touched, validateField, validationTimers]);
+    validationTimersRef.current[fieldName] = timer;
+  }, [touched, validateField]);
 
   // Redirect when authentication state changes
   // Only redirect if we're on the /login route, not if we're on the landing page
@@ -107,7 +102,6 @@ const LoginForm: React.FC = () => {
   // Debug logging for 2FA state
   useEffect(() => {
     if (requires2FA) {
-      console.log('LoginForm: 2FA state active, rendering verification screen');
     }
   }, [requires2FA]);
 
@@ -159,12 +153,9 @@ const LoginForm: React.FC = () => {
     setSuccessMessage(null);
     
     try {
-      console.log('Attempting login for:', formData.email);
       const response = await login(formData.email, formData.password);
-      console.log('Login response:', response);
       
       if (response?.requires2FA) {
-        console.log('2FA required, switching state...');
         setRequires2FA(true);
         setUserId(response.data.userId);
         setSuccessMessage(t('auth.login.twofa_subtitle'));
@@ -181,8 +172,6 @@ const LoginForm: React.FC = () => {
       // const dashboardPath = getRoleDashboard();
       // navigate(dashboardPath, { replace: true });
     } catch (err: any) {
-      console.error('Login error:', err);
-
       // Increment retry count for better user feedback
       setRetryCount(prev => prev + 1);
 

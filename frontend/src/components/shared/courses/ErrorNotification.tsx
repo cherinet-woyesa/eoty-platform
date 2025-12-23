@@ -1,6 +1,7 @@
 // frontend/src/components/courses/ErrorNotification.tsx
 import type { FC } from 'react';
-import { AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
+import { AlertCircle, AlertTriangle, Info, X, CheckCircle } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 export type NotificationType = 'error' | 'warning' | 'info' | 'success';
 
@@ -43,77 +44,82 @@ const ErrorNotification: FC<ErrorNotificationProps> = ({
       case 'info':
         return <Info className="h-5 w-5" />;
       case 'success':
-        return <AlertCircle className="h-5 w-5" />;
+        return <CheckCircle className="h-5 w-5" />;
       default:
         return <Info className="h-5 w-5" />;
     }
   };
 
-  // Get colors based on type
-  const getColors = () => {
+  // Get styles based on type
+  const getStyles = () => {
     switch (type) {
       case 'error':
         return {
-          bg: 'bg-red-50',
-          border: 'border-red-200',
-          text: 'text-red-800',
-          icon: 'text-red-600',
-          button: 'bg-red-600 hover:bg-red-700'
+          className: 'bg-red-50 border-red-200 border-l-red-600',
+          textClass: 'text-red-800',
+          iconClass: 'text-red-600',
+          buttonClass: 'bg-red-600 hover:bg-red-700 text-white'
         };
       case 'warning':
         return {
-          bg: 'bg-yellow-50',
-          border: 'border-yellow-200',
-          text: 'text-yellow-800',
-          icon: 'text-yellow-600',
-          button: 'bg-yellow-600 hover:bg-yellow-700'
+          className: 'bg-yellow-50 border-yellow-200 border-l-yellow-600',
+          textClass: 'text-yellow-800',
+          iconClass: 'text-yellow-600',
+          buttonClass: 'bg-yellow-600 hover:bg-yellow-700 text-white'
         };
       case 'info':
         return {
-          bg: 'bg-blue-50',
-          border: 'border-blue-200',
-          text: 'text-blue-800',
-          icon: 'text-blue-600',
-          button: 'bg-blue-600 hover:bg-blue-700'
+          style: {
+            backgroundColor: `${brandColors.primaryHex}10`,
+            borderColor: `${brandColors.primaryHex}30`,
+            borderLeftColor: brandColors.primaryHex
+          },
+          textStyle: { color: '#1e2a55' },
+          iconStyle: { color: brandColors.primaryHex },
+          buttonStyle: { backgroundColor: brandColors.primaryHex, color: 'white' }
         };
       case 'success':
         return {
-          bg: 'bg-green-50',
-          border: 'border-green-200',
-          text: 'text-green-800',
-          icon: 'text-green-600',
-          button: 'bg-green-600 hover:bg-green-700'
+          style: {
+            backgroundColor: `${brandColors.accentHex}10`,
+            borderColor: `${brandColors.accentHex}30`,
+            borderLeftColor: brandColors.accentHex
+          },
+          textStyle: { color: '#1e2a55' },
+          iconStyle: { color: brandColors.accentHex },
+          buttonStyle: { backgroundColor: brandColors.accentHex, color: 'white' }
         };
       default:
         return {
-          bg: 'bg-gray-50',
-          border: 'border-gray-200',
-          text: 'text-gray-800',
-          icon: 'text-gray-600',
-          button: 'bg-gray-600 hover:bg-gray-700'
+          className: 'bg-gray-50 border-gray-200 border-l-gray-600',
+          textClass: 'text-gray-800',
+          iconClass: 'text-gray-600',
+          buttonClass: 'bg-gray-600 hover:bg-gray-700 text-white'
         };
     }
   };
 
-  const colors = getColors();
+  const styles = getStyles();
+  const isCustom = 'style' in styles;
 
   return (
     <div
-      className={`${colors.bg} ${colors.border} border-l-4 p-4 rounded-lg shadow-lg animate-slide-in-right`}
+      className={`border-l-4 p-4 rounded-lg shadow-lg animate-slide-in-right ${!isCustom ? (styles as any).className : ''}`}
+      style={isCustom ? (styles as any).style : {}}
       role="alert"
     >
       <div className="flex items-start">
         {/* Icon */}
-        <div className={`flex-shrink-0 ${colors.icon}`}>
+        <div className={`flex-shrink-0 ${!isCustom ? (styles as any).iconClass : ''}`} style={isCustom ? (styles as any).iconStyle : {}}>
           {getIcon()}
         </div>
 
         {/* Content */}
         <div className="ml-3 flex-1">
-          <h3 className={`text-sm font-semibold ${colors.text}`}>
+          <h3 className={`text-sm font-semibold ${!isCustom ? (styles as any).textClass : ''}`} style={isCustom ? (styles as any).textStyle : {}}>
             {title}
           </h3>
-          <p className={`mt-1 text-sm ${colors.text} opacity-90`}>
+          <p className={`mt-1 text-sm opacity-90 ${!isCustom ? (styles as any).textClass : ''}`} style={isCustom ? (styles as any).textStyle : {}}>
             {message}
           </p>
 
@@ -122,7 +128,8 @@ const ErrorNotification: FC<ErrorNotificationProps> = ({
             <div className="mt-3">
               <button
                 onClick={recoveryAction.onClick}
-                className={`${colors.button} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors`}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${!isCustom ? (styles as any).buttonClass : ''}`}
+                style={isCustom ? (styles as any).buttonStyle : {}}
               >
                 {recoveryAction.label}
               </button>
@@ -134,7 +141,8 @@ const ErrorNotification: FC<ErrorNotificationProps> = ({
         {onDismiss && (
           <button
             onClick={onDismiss}
-            className={`flex-shrink-0 ml-3 ${colors.icon} hover:opacity-70 transition-opacity`}
+            className={`flex-shrink-0 ml-3 hover:opacity-70 transition-opacity ${!isCustom ? (styles as any).iconClass : ''}`}
+            style={isCustom ? (styles as any).iconStyle : {}}
             aria-label="Dismiss notification"
           >
             <X className="h-5 w-5" />

@@ -2,10 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
-  ArrowLeft, Video, BookOpen, Users, TrendingUp, FileVideo, Loader2, Plus, CheckCircle, ChevronDown
+  ArrowLeft, Video, BookOpen, TrendingUp, Loader2, Plus, CheckCircle, ChevronDown
 } from 'lucide-react';
 import EnhancedVideoRecorder from '@/components/shared/courses/EnhancedVideoRecorder';
-import { teacherApi } from '@/services/api/teacher';
 import { coursesApi } from '@/services/api';
 import { brandColors } from '@/theme/brand';
 
@@ -37,33 +36,7 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [showCourseSelector, setShowCourseSelector] = useState(false);
 
-  const [stats, setStats] = useState({
-    totalVideos: 0,
-    totalStudents: 0,
-    averageRating: 0,
-    thisMonth: 0
-  });
-
-  useEffect(() => {
-    const loadStats = async () => {
-      try {
-        const res = await teacherApi.getDashboardStats();
-        const data = res.data || res; // handle both {data:{}} or plain object
-        setStats({
-          totalVideos: data.totalLessons ?? 0,
-          totalStudents: data.totalStudentsEnrolled ?? 0,
-          averageRating: Number(data.averageCourseRating) || 0,
-          thisMonth: data.lessonsRecordedThisMonth ?? 0
-        });
-      } catch (error) {
-        // Fallback: keep zeros, don't break recording UI
-        console.warn('Failed to load teacher recording stats:', error);
-      }
-    };
-
-    void loadStats();
-  }, []);
-
+  
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -290,13 +263,8 @@ const RecordVideo: React.FC<RecordVideoProps> = ({
                 return;
               }
 
-              // Redirect to course details page after successful upload
-              if (selectedCourseId) {
-                navigate(`/teacher/courses/${selectedCourseId}`);
-              } else {
-                // If no course ID (e.g. standalone lesson), go to courses list
-                navigate('/teacher/courses');
-              }
+              // Redirect back to upload page after successful upload
+              navigate('/teacher/content');
             }}
           />
         </div>

@@ -54,7 +54,7 @@ const Header: React.FC<HeaderProps> = ({ activeSection, onScrollToSection }) => 
             <Link to="/" className="flex items-center space-x-3 group cursor-pointer min-w-0">
               <div className="relative flex-shrink-0">
                 <div className={`absolute inset-0 rounded-lg blur-md transition-all ${showTransparent ? 'bg-white/10' : 'bg-[color:var(--brand)]/12'}`} style={{ ['--brand' as any]: brandColors.primaryHex }} />
-                <img src="/eoc.jpg" alt="EOTY Logo" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover transform group-hover:scale-110 transition-transform" />
+                <img src="/eoc.jpg" alt={t('common.logo_alt')} className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover transform group-hover:scale-110 transition-transform" />
               </div>
               <span className={`text-xl sm:text-2xl font-bold truncate transition-colors ${showTransparent ? 'text-white' : 'text-gray-800'}`}>
                 EOTY Platform

@@ -28,6 +28,18 @@ export interface Testimonial {
   role: string;
   imageUrl?: string;
   displayOrder?: number;
+  locale?: string;
+}
+
+export interface AdminTestimonialPayload {
+  id?: number;
+  name: string;
+  role?: string;
+  content: string;
+  rating?: number;
+  imageUrl?: string;
+  displayOrder?: number;
+  locale?: string;
 }
 
 export interface HeroContent {
@@ -70,6 +82,11 @@ export interface LandingContent {
   videos?: any[];
 }
 
+const buildLocaleParams = (locale?: string) => {
+  if (!locale) return undefined;
+  return { params: { locale } };
+};
+
 export const landingApi = {
   // Get landing page statistics
   getStats: async (): Promise<{ success: boolean; data: LandingStats }> => {
@@ -78,20 +95,20 @@ export const landingApi = {
   },
 
   // Get featured courses for landing page
-  getFeaturedCourses: async (): Promise<{ success: boolean; data: { courses: FeaturedCourse[] } }> => {
-    const response = await apiClient.get('/landing/featured-courses');
+  getFeaturedCourses: async (locale?: string): Promise<{ success: boolean; data: { courses: FeaturedCourse[] } }> => {
+    const response = await apiClient.get('/landing/featured-courses', buildLocaleParams(locale));
     return response.data;
   },
 
   // Get testimonials for landing page
-  getTestimonials: async (): Promise<{ success: boolean; data: { testimonials: Testimonial[] } }> => {
-    const response = await apiClient.get('/landing/page-testimonials');
+  getTestimonials: async (locale?: string): Promise<{ success: boolean; data: { testimonials: Testimonial[] }; locale?: string }> => {
+    const response = await apiClient.get('/landing/page-testimonials', buildLocaleParams(locale));
     return response.data;
   },
 
   // Get landing page content (hero, about, how it works)
-  getContent: async (): Promise<{ success: boolean; data: LandingContent }> => {
-    const response = await apiClient.get('/landing/content');
+  getContent: async (locale?: string): Promise<{ success: boolean; data: LandingContent; locale?: string }> => {
+    const response = await apiClient.get('/landing/content', buildLocaleParams(locale));
     return response.data;
   },
 
@@ -115,7 +132,7 @@ export const landingApi = {
   },
 
   // Admin: Save testimonial
-  saveTestimonial: async (testimonial: any): Promise<{ success: boolean; message: string }> => {
+  saveTestimonial: async (testimonial: AdminTestimonialPayload): Promise<{ success: boolean; message: string }> => {
     const response = await apiClient.post('/landing/page-testimonials', testimonial);
     return response.data;
   },

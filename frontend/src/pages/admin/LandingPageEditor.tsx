@@ -20,6 +20,7 @@ import {
 import { adminApi } from '@/services/api/admin';
 import { landingApi } from '@/services/api/landing';
 import { coursesApi } from '@/services/api';
+import { localizationApi } from '@/services/api/localization';
 import { brandColors } from '@/theme/brand';
 
 interface LandingSection {
@@ -33,6 +34,12 @@ interface LandingContentState {
   [key: string]: any;
 }
 
+type LocaleOption = {
+  code: string;
+  label: string;
+  flag?: string;
+};
+
 const LandingPageEditor: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'how-it-works' | 'featured-courses' | 'resources' | 'videos' | 'blogs' | 'testimonials'>('hero');
   const [landingContent, setLandingContent] = useState<LandingContentState>({});
@@ -42,6 +49,10 @@ const LandingPageEditor: React.FC = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [selectedLocale, setSelectedLocale] = useState<string>('en');
+  const [availableLocales, setAvailableLocales] = useState<LocaleOption[]>([
+    { code: 'en', label: 'EN' }
+  ]);
 
   const sections: LandingSection[] = [
     { id: 'hero', label: 'Hero Section', icon: <FileText className="h-4 w-4" />, description: 'Main landing banner with title, description, and video' },
@@ -115,15 +126,68 @@ const LandingPageEditor: React.FC = () => {
   };
 
   useEffect(() => {
+    const loadLocales = async () => {
+      try {
+        const response = await localizationApi.getAvailableLocales();
+        const locales = response?.data?.locales || response?.locales || [];
+        if (Array.isArray(locales) && locales.length) {
+          const normalizedLocales = locales
+            .map((locale) => {
+              if (!locale) return null;
+              if (typeof locale === 'string') {
+                const code = locale.toLowerCase();
+                return { code, label: locale.toUpperCase() } as LocaleOption;
+              }
+              if (typeof locale === 'object') {
+                const code = String(locale.code || locale.locale || locale.value || '').toLowerCase();
+                if (!code) return null;
+                const label = locale.name || locale.label || code.toUpperCase();
+                return {
+                  code,
+                  label,
+                  flag: locale.flag
+                } as LocaleOption;
+              }
+              return null;
+            })
+            .filter((item): item is LocaleOption => Boolean(item));
+
+          if (normalizedLocales.length) {
+            setAvailableLocales(normalizedLocales);
+            if (!normalizedLocales.some((loc) => loc.code === selectedLocale)) {
+              setSelectedLocale(normalizedLocales[0].code);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load available locales', err);
+      }
+    };
+    loadLocales();
+  }, []);
+
+  useEffect(() => {
     fetchLandingContent();
     fetchTestimonials();
-  }, []);
+  }, [selectedLocale]);
+
+  useEffect(() => {
+    const featuredSection = landingContent['featured-courses'];
+    if (featuredSection?.courseIds) {
+      const normalizedIds = (featuredSection.courseIds as Array<number | string>)
+        .map((id) => parseInt(String(id), 10))
+        .filter((id) => Number.isInteger(id));
+      setFeaturedCourseIds(normalizedIds);
+    } else {
+      setFeaturedCourseIds([]);
+    }
+  }, [landingContent, selectedLocale]);
 
   useEffect(() => {
     if (activeTab === 'featured-courses') {
       fetchCoursesData();
     }
-  }, [activeTab]);
+  }, [activeTab, selectedLocale]);
 
   const fetchCoursesData = async (silent?: boolean) => {
     try {
@@ -132,17 +196,10 @@ const LandingPageEditor: React.FC = () => {
       } else {
         setLoading(true);
       }
-      const [coursesRes, featuredRes] = await Promise.all([
-        coursesApi.getCourses(),
-        landingApi.getFeaturedCourses()
-      ]);
+      const coursesRes = await coursesApi.getCourses();
 
       if (coursesRes.success) {
         setAllCourses(coursesRes.data.courses);
-      }
-
-      if (featuredRes.success) {
-        setFeaturedCourseIds(featuredRes.data.courses.map((c: any) => parseInt(c.id)));
       }
     } catch (err) {
       console.error('Failed to fetch courses:', err);
@@ -158,7 +215,7 @@ const LandingPageEditor: React.FC = () => {
 
   const fetchTestimonials = async () => {
     try {
-      const response = await landingApi.getTestimonials();
+      const response = await landingApi.getTestimonials(selectedLocale);
       if (response.success) {
         setTestimonials(response.data.testimonials);
       }
@@ -191,7 +248,7 @@ const LandingPageEditor: React.FC = () => {
       } else {
         setLoading(true);
       }
-      const response = await landingApi.getContent();
+      const response = await landingApi.getContent(selectedLocale);
       if (response.success) {
         setLandingContent(response.data);
         setLastUpdated(new Date().toISOString());
@@ -214,7 +271,7 @@ const LandingPageEditor: React.FC = () => {
       setSaving(true);
       setError(null);
 
-      const response = await adminApi.updateLandingContent(sectionId, content);
+      const response = await adminApi.updateLandingContent(sectionId, content, selectedLocale);
       if (response.success) {
         setLandingContent((prev: any) => ({
           ...prev,
@@ -1093,7 +1150,7 @@ const LandingPageEditor: React.FC = () => {
                   <p className="text-sm text-gray-500 mt-1">Manage user reviews and success stories.</p>
                 </div>
                 <button
-                  onClick={() => setEditingTestimonial({})}
+                  onClick={() => setEditingTestimonial({ locale: selectedLocale })}
                   className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 shadow-sm text-sm"
                 >
                   <Plus className="h-4 w-4" /> Add Testimonial
@@ -1142,8 +1199,8 @@ const LandingPageEditor: React.FC = () => {
                         placeholder="What did they say?"
                       />
                     </div>
-                    <div className="flex justify-between items-center">
-                      <div className="w-1/3">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-end">
+                      <div className="md:w-1/3">
                         <label className="block text-xs font-medium text-gray-700 mb-1">Rating (1-5)</label>
                         <select
                           value={editingTestimonial.rating || 5}
@@ -1153,7 +1210,21 @@ const LandingPageEditor: React.FC = () => {
                           {[1, 2, 3, 4, 5].map(r => <option key={r} value={r}>{r} Stars</option>)}
                         </select>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="md:w-1/3">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Locale</label>
+                        <select
+                          value={editingTestimonial.locale || selectedLocale}
+                          onChange={(e) => setEditingTestimonial({ ...editingTestimonial, locale: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-indigo-500 text-sm"
+                        >
+                          {availableLocales.map(({ code, label, flag }) => (
+                            <option key={code} value={code}>
+                              {flag ? `${flag} ${label}` : label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2 md:ml-auto">
                         <button
                           onClick={() => setEditingTestimonial(null)}
                           className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50"
@@ -1164,7 +1235,11 @@ const LandingPageEditor: React.FC = () => {
                           onClick={async () => {
                             try {
                               setSaving(true);
-                              const res = await landingApi.saveTestimonial(editingTestimonial);
+                              const payload = {
+                                ...editingTestimonial,
+                                locale: editingTestimonial.locale || selectedLocale
+                              };
+                              const res = await landingApi.saveTestimonial(payload);
                               if (res.success) {
                                 if (fetchTestimonials) fetchTestimonials();
                                 setEditingTestimonial(null);
@@ -1195,7 +1270,14 @@ const LandingPageEditor: React.FC = () => {
                             {t.name?.[0] || 'U'}
                           </div>
                           <div>
-                            <div className="text-sm font-semibold text-gray-900">{t.name}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm font-semibold text-gray-900">{t.name}</div>
+                              {t.locale && (
+                                <span className="text-[10px] font-semibold tracking-wide uppercase bg-white border border-gray-200 rounded-full px-2 py-0.5 text-gray-600">
+                                  {t.locale}
+                                </span>
+                              )}
+                            </div>
                             <div className="text-xs text-gray-500">{t.role}</div>
                           </div>
                         </div>
@@ -1291,7 +1373,21 @@ const LandingPageEditor: React.FC = () => {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm">
+            <span className="text-xs font-semibold text-gray-500 uppercase">Locale</span>
+            <select
+              value={selectedLocale}
+              onChange={(e) => setSelectedLocale(e.target.value)}
+              className="text-sm font-medium text-gray-900 focus:outline-none bg-transparent"
+            >
+              {availableLocales.map(({ code, label, flag }) => (
+                <option key={code} value={code} className="text-gray-900">
+                  {flag ? `${flag} ${label}` : label}
+                </option>
+              ))}
+            </select>
+          </div>
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}

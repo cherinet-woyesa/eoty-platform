@@ -17,6 +17,8 @@
     "logout": "ውጻእ",
     "login": "መግቢት",
     "register": "ተመዝገብ",
+    "logo_alt": "ሎጎ ናይ መድረኽ",
+    "back_to_landing": "ናብ መእተዊ ገጽ ተመለስ",
     "email": "ኢሜል",
     "password": "መሕለፊ ቃል",
     "confirm_password": "መሕለፊ ቃል ማረጋገጫ",
@@ -142,7 +144,9 @@
   "auth": {
     "login": {
       "title": "ወደ መለያኻ ግባ",
+      "email_label": "ኢሜይል ኣድራሻ",
       "email_placeholder": "ኢሜልኻ ኣእትው",
+      "password_label": "መሕለፊ ቃል",
       "password_placeholder": "መሕለፊ ቃልኻ ኣእትው",
       "forgot_password": "መሕለፊ ቃል ተረሲዑ?",
       "login_button": "ግበ",
@@ -150,6 +154,7 @@
       "register_link": "እዚ ተመዝገብ"
     },
     "register": {
+      
       "title": "መለያኻ ፍጠር",
       "first_name_placeholder": "ስምኻ ኣእትው",
       "last_name_placeholder": "ኣባት ስምኻ ኣእትው",
@@ -157,9 +162,23 @@
       "password_placeholder": "መሕለፊ ቃል ፍጠር",
       "confirm_password_placeholder": "መሕለፊ ቃልኻ ኣረጋግጽ",
       "chapter_placeholder": "ምድብ ምረጽ",
+      "chapter_retrying": "ብድገማ እየተፈተነ...",
+      "chapter_retry": "ምድብታት እንደገና ጫን",
+      "try_location": "ናይ ኣነ ቦታ ተጠቀም",
       "register_button": "ተመዝገብ",
+      "or_continue": "ወይ ቀጽል ብ",
       "have_account": "መለያ ኣለኻ?",
-      "login_link": "እዚ ግባ"
+      "login_link": "እዚ ግባ",
+      "errors": {
+        "chapters_unavailable": "ምድብታት ኣብዚ ግዜ ኣይተገኙን። እባክካ እንደገና ፈትን ወይ ናብ ቅርብ ፍለጋ ተቐይር።"
+      }
+    },
+    "social": {
+      "connecting": "እየተገናኘ ኣሎ...",
+      "google": "Google",
+      "google_aria": "ብ Google ግበ",
+      "facebook": "Facebook",
+      "facebook_aria": "ብ Facebook ግበ"
     }
   },
   "teacher_profile.verification_docs": {

@@ -456,6 +456,7 @@
     "next": "Next",
     "skip": "Skip",
     "back": "Back",
+    "back_to_landing": "Back to landing page",
     "welcome": "Welcome",
     "next": "Next",
     "skip": "Skip",
@@ -475,6 +476,7 @@
     "logout": "Logout",
     "login": "Login",
     "register": "Register",
+    "logo_alt": "Platform logo",
     "email": "Email",
     "password": "Password",
     "confirm_password": "Confirm Password",
@@ -1296,6 +1298,9 @@
       "role_required": "Please select a role",
       "chapter_label": "Local Chapter",
       "chapter_fallback": "Using fallback chapter list. Some chapters may be unavailable.",
+      "chapter_retrying": "Trying again...",
+      "chapter_retry": "Retry loading chapters",
+      "try_location": "Use my location",
       "use_nearest": "Use nearest chapter",
       "auto_selected": "We picked {{name}}{{distance}}. You can change it above.",
       "password_strength_label": "Password strength:",
@@ -1308,6 +1313,7 @@
         "no_spaces": "No spaces allowed",
         "no_password_word": "Cannot contain the word \"password\""
       },
+      "or_continue": "Or continue with",
       "email_divider": "Register with email",
       "twofa_title": "Two-Factor Authentication",
       "twofa_subtitle": "Please enter the 6-digit code sent to your email.",
@@ -1341,6 +1347,9 @@
         "success_with_email": "Account created successfully! Please check your email ({{email}}) and click the verification link to activate your account.",
         "success_toast": "Account created successfully"
       },
+      "errors": {
+        "chapters_unavailable": "We could not load chapters right now. Please retry or switch to nearby search."
+      },
       "strength": {
         "very_weak": "Very Weak",
         "weak": "Weak",
@@ -1348,6 +1357,13 @@
         "good": "Good",
         "strong": "Strong"
       }
+    },
+    "social": {
+      "connecting": "Connecting...",
+      "google": "Google",
+      "google_aria": "Sign in with Google",
+      "facebook": "Facebook",
+      "facebook_aria": "Sign in with Facebook"
     }
   },
   "chapters": {

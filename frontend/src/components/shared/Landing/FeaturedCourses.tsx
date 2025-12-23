@@ -96,45 +96,57 @@ const FeaturedCourses = forwardRef<HTMLElement, FeaturedCoursesProps>(({ feature
 
                     <div className="relative z-10 p-6 lg:p-8">
                     <h3 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 line-clamp-2 leading-tight transition-colors" style={{ color: brandColors.primaryHex }}>
-                      {course.title}
+                      {course.title || t('landing.courses.untitled', 'Untitled course')}
                     </h3>
                     <p className="text-slate-700 leading-relaxed mb-4 sm:mb-6 line-clamp-3 text-sm sm:text-base">
-                      {course.description || 'Comprehensive course covering essential topics for spiritual and academic growth.'}
+                      {course.description || t('landing.courses.missing_description', 'Details coming soon.')}
                     </p>
 
-                    <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2">
-                          <Clock className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
-                          <span className="font-medium">{course.duration || '8 weeks'}</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Users className="h-4 w-4" style={{ color: brandColors.primaryHoverHex }} />
-                          <span className="font-medium">{course.enrolledCount || 0} students</span>
+                    {(course.duration || typeof course.enrolledCount === 'number') && (
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-gray-600 mb-4 sm:mb-6">
+                        <div className="flex items-center space-x-4">
+                          {course.duration && (
+                            <div className="flex items-center space-x-2">
+                              <Clock className="h-4 w-4" style={{ color: brandColors.primaryHex }} />
+                              <span className="font-medium">{course.duration}</span>
+                            </div>
+                          )}
+                          {typeof course.enrolledCount === 'number' && (
+                            <div className="flex items-center space-x-2">
+                              <Users className="h-4 w-4" style={{ color: brandColors.primaryHoverHex }} />
+                              <span className="font-medium">{t('landing.courses.learners', { defaultValue: '{{count}} learners', count: course.enrolledCount })}</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    )}
 
-                    <div className="flex items-center justify-between">
-                      <div className="flex flex-wrap gap-2 sm:gap-3">
-                        <span className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-xl font-semibold border"
-                          style={{
-                            background: `${brandColors.primaryHex}0d`,
-                            color: brandColors.primaryHex,
-                            borderColor: `${brandColors.primaryHex}33`
-                          }}>
-                          {course.level || 'Beginner'}
-                        </span>
-                        <span className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-xl font-semibold border"
-                          style={{
-                            background: `${brandColors.accentHex}14`,
-                            color: brandColors.accentHex,
-                            borderColor: `${brandColors.accentHex}33`
-                          }}>
-                          {course.category || 'Faith'}
-                        </span>
+                    {(course.level || course.category) && (
+                      <div className="flex items-center justify-between">
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                          {course.level && (
+                            <span className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-xl font-semibold border"
+                              style={{
+                                background: `${brandColors.primaryHex}0d`,
+                                color: brandColors.primaryHex,
+                                borderColor: `${brandColors.primaryHex}33`
+                              }}>
+                              {course.level}
+                            </span>
+                          )}
+                          {course.category && (
+                            <span className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-xl font-semibold border"
+                              style={{
+                                background: `${brandColors.accentHex}14`,
+                                color: brandColors.accentHex,
+                                borderColor: `${brandColors.accentHex}33`
+                              }}>
+                              {course.category}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </Link>
               ))}

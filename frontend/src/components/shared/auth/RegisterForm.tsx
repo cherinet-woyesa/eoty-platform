@@ -7,6 +7,7 @@ import { chaptersApi } from '@/services/api/chapters';
 import FormInput from './FormInput';
 import FormError from './FormError';
 import LoadingButton from './LoadingButton';
+import SocialLoginButtons from './SocialLoginButtons';
 import { extractErrorMessage } from '@/utils/errorMessages';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { brandColors } from '@/theme/brand';
@@ -53,7 +54,9 @@ const RegisterForm: React.FC = () => {
   const [chapters, setChapters] = useState<{id: number, name: string, location: string, distance?: number | null}[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   const [chapterError, setChapterError] = useState(false);
+  const [chapterErrorMessage, setChapterErrorMessage] = useState<string | null>(null);
   const [useNearby, setUseNearby] = useState(false);
+  const [chaptersReloadToken, setChaptersReloadToken] = useState(0);
   const distanceKm = 50;
   const { coords, isLoading: isLocating, error: locError, requestLocation, clearError } = useGeolocation({
     timeoutMs: 8000,
@@ -66,6 +69,14 @@ const RegisterForm: React.FC = () => {
   
   const navigate = useNavigate();
   const { register, verify2FA, isAuthenticated } = useAuth();
+
+  const retryChapterFetch = () => {
+    setLoadingChapters(true);
+    setChapterError(false);
+    setChapterErrorMessage(null);
+    setChapters([]);
+    setChaptersReloadToken(prev => prev + 1);
+  };
 
   // 2FA State
   const [requires2FA, setRequires2FA] = useState(false);
@@ -101,18 +112,17 @@ const RegisterForm: React.FC = () => {
           }));
           setChapters(mapped);
           setChapterError(false);
+          setChapterErrorMessage(null);
         } else {
           throw new Error('Failed to fetch chapters');
         }
       } catch (err) {
         console.error('Failed to fetch chapters:', err);
         setChapterError(true);
-        // Fallback data
-        setChapters([
-          { id: 7, name: 'Main Headquarters', location: 'Addis Ababa, Ethiopia' },
-          { id: 8, name: 'Addis Ababa Chapter', location: 'Addis Ababa, Ethiopia' },
-          { id: 9, name: 'Bahir Dar Chapter', location: 'Bahir Dar, Ethiopia' },
-        ]);
+        setChapterErrorMessage(
+          err instanceof Error ? err.message : t('auth.register.errors.chapters_unavailable')
+        );
+        setChapters([]);
         if (useNearby) {
           setUseNearby(false);
           clearError();
@@ -123,7 +133,7 @@ const RegisterForm: React.FC = () => {
     };
 
     fetchChapters();
-  }, [useNearby, coords, distanceKm]);
+  }, [useNearby, coords, distanceKm, clearError, t, chaptersReloadToken]);
 
   // Auto-select nearest when using nearby and distances are available
   useEffect(() => {
@@ -560,15 +570,44 @@ const RegisterForm: React.FC = () => {
               color: '#92400e'
             }}
           >
-            <div className="flex items-start justify-between">
-              <p className="text-xs font-medium flex-1">{t('auth.register.chapter_error')}</p>
-              <button
-                type="button"
-                onClick={() => setChapterError(false)}
-                className="ml-3 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                ×
-              </button>
+            <div className="space-y-3" role="status" aria-live="polite">
+              <div className="flex items-start gap-3">
+                <p className="text-xs font-medium flex-1">
+                  {chapterErrorMessage || t('auth.register.errors.chapters_unavailable')}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setChapterError(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label={t('common.dismiss', { defaultValue: 'Dismiss' })}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={retryChapterFetch}
+                  disabled={loadingChapters}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${loadingChapters ? 'bg-gray-200 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-white text-[color:var(--brand)] border-[color:rgba(30,27,75,0.25)] hover:bg-[color:rgba(30,27,75,0.08)]'}`}
+                >
+                  {loadingChapters
+                    ? t('auth.register.chapter_retrying', { defaultValue: 'Trying again…' })
+                    : t('auth.register.chapter_retry', { defaultValue: 'Retry loading chapters' })}
+                </button>
+                {!useNearby && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseNearby(true);
+                      requestLocation();
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border bg-white text-amber-700 border-amber-200 hover:bg-amber-50"
+                  >
+                    {t('auth.register.try_location', { defaultValue: 'Use my location' })}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -1001,6 +1040,15 @@ const RegisterForm: React.FC = () => {
             style={{ background: 'linear-gradient(90deg, transparent, rgba(156,163,175,0.5), transparent)' }}
           />
         </div>
+
+        <SocialLoginButtons
+          role={formData.role}
+          onRequires2FA={(uid) => {
+            setRequires2FA(true);
+            setUserId(uid);
+            setSuccessMessage(t('auth.register.twofa_subtitle'));
+          }}
+        />
       </div>
       {/* Login Link */}
       <div className="text-center pt-4 sm:pt-5 border-t border-gray-200" role="navigation" aria-label="Sign in navigation">

@@ -43,6 +43,7 @@ async function migrateApprovedContent() {
           author: upload.metadata?.author || 'Unknown',
           category: upload.category || 'General',
           file_name: upload.file_name,
+          original_filename: upload.original_filename || upload.file_name,
           file_type: upload.file_type,
           file_path: upload.file_path,
           file_size: upload.file_size,

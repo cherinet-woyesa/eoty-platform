@@ -229,6 +229,7 @@
     "next": "ቀጣይ",
     "skip": "ዝለል",
     "back": "ተመለስ",
+    "back_to_landing": "ወደ መነሻ ገጽ ተመለስ",
     "welcome": "እንኳን ደህና መጡ",
     "dashboard": "ዳሽቦርድ",
     "courses": "ኮርሶች",
@@ -245,6 +246,7 @@
     "logout": "ውጣ",
     "login": "ግባ",
     "register": "ተመዝገብ",
+    "logo_alt": "የመድረክ አርማ",
     "email": "ኢሜል",
     "password": "የይለፍ ቃል",
     "confirm_password": "የይለፍ ቃል ያረጋግጡ",
@@ -720,7 +722,9 @@
     "login": {
       "title": "ወደ መለያዎ ይግቡ",
       "subtitle": "የመማር ጉዞዎን እና የማህበረሰብ ተሳትፎዎን ይቀጥሉ።",
+      "email_label": "የኢሜል አድራሻ",
       "email_placeholder": "ኢሜልዎን ያስገቡ",
+      "password_label": "የይለፍ ቃል",
       "password_placeholder": "የይለፍ ቃልዎን ያስገቡ",
       "forgot_password": "የይለፍ ቃል ተረሳ?",
       "login_button": "ወደ መለያ ግባ",
@@ -777,6 +781,9 @@
       "role_required": "እባክዎ ሚና ይምረጡ",
       "chapter_label": "አካባቢ ምዕራፍ",
       "chapter_fallback": "የተንሸራታች ዝርዝር ተጠቅመናል። አንዳንድ ምዕራፎች ሊጎዱ ይችላሉ።",
+      "chapter_retrying": "እንደገና በመሞከር ላይ...",
+      "chapter_retry": "ምዕራፎችን እንደገና ይጫኑ",
+      "try_location": "ቦታዬን ተጠቀም",
       "use_nearest": "በአቅራቢያ ያለውን ምዕራፍ ተጠቀም",
       "auto_selected": " {{name}}{{distance}} መረጥነዋል። በላይ ማሻሻል ይችላሉ።",
       "password_strength_label": "የይለፍ ቃል ኃይል:",
@@ -789,6 +796,7 @@
         "no_spaces": "ክፍተት አይኖርበት",
         "no_password_word": "\"password\" ቃል አይኖርበት"
       },
+      "or_continue": "ወይም ቀጥሉ በ",
       "email_divider": "በኢሜል ይመዝገቡ",
       "twofa_title": "ሁለት ደረጃ ማረጋገጫ",
       "twofa_subtitle": "ወደ ኢሜልዎ የተላከውን 6-አሃዝ ኮድ ያስገቡ።",
@@ -822,6 +830,9 @@
         "success_with_email": "መለያዎ ተፈጠረ። ኢሜልዎን ({{email}}) ያረጋግጡ እና የማረጋገጫ አገናኝን ይንኩ።",
         "success_toast": "መመዝገብ ተሳክቷል"
       },
+      "errors": {
+        "chapters_unavailable": "ምዕራፎቹን በአሁኑ ጊዜ ማግኘት አልተቻለም። እባክዎ እንደገና ይሞክሩ ወይም የአቅራቢያ ፍለጋ ይቀይሩ።"
+      },
       "strength": {
         "very_weak": "በጣም ደካማ",
         "weak": "ደካማ",
@@ -829,6 +840,13 @@
         "good": "ጥሩ",
         "strong": "ጠንካራ"
       }
+    },
+    "social": {
+      "connecting": "በመገናኘት ላይ...",
+      "google": "Google",
+      "google_aria": "በ Google ይግቡ",
+      "facebook": "Facebook",
+      "facebook_aria": "በ Facebook ይግቡ"
     }
   },
   "community_hub": {

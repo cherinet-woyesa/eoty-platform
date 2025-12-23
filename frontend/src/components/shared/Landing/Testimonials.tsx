@@ -103,7 +103,7 @@ const Testimonials = forwardRef<HTMLElement, TestimonialsProps>(({ testimonials,
                   <div className="relative mb-6">
                     <Quote className="h-8 w-8 sm:h-10 sm:w-10 mb-3 sm:mb-4 absolute -top-2 -left-2" style={{ color: `${brandColors.primaryHex}66` }} />
                     <p className="text-gray-700 leading-relaxed text-sm sm:text-base italic pl-6 sm:pl-8">
-                      "{testimonial.content || testimonial.message || 'This platform has transformed my learning experience with its faith-centered approach and excellent content.'}"
+                      "{testimonial.content || testimonial.message || t('landing.testimonials.default_quote', 'This platform has transformed my learning experience with its faith-centered approach and excellent content.')}"
                     </p>
                   </div>
 

@@ -3,14 +3,13 @@ import { Check, CreditCard, Building, ShieldCheck, X, Loader2, User } from 'luci
 import { motion, AnimatePresence } from 'framer-motion';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import axios from 'axios';
 import { apiClient } from '@/services/api/apiClient';
 import { useTranslation } from 'react-i18next';
 
 const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY || '';
 const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null; 
 
-const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loadingStats?: boolean }> = ({ totalRaised, statsError, loadingStats }) => {
+const DonationForm: React.FC<{ totalRaised: number | null; statsError?: string; loadingStats?: boolean }> = ({ totalRaised, statsError, loadingStats }) => {
   const { t } = useTranslation();
   const [amount, setAmount] = useState<number>(50);
   const [customAmount, setCustomAmount] = useState<string>('');
@@ -21,6 +20,12 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
   const [error, setError] = useState<string | null>(null);
   const [transactionId, setTransactionId] = useState<string>('');
   const minDonation = 5;
+  const goalAmount = 100000;
+  const progressPercent = typeof totalRaised === 'number' ? Math.min((totalRaised / goalAmount) * 100, 100) : 0;
+  const displayTotal = typeof totalRaised === 'number' ? `$${totalRaised.toLocaleString()}` : '—';
+  const percentLabel = typeof totalRaised === 'number'
+    ? t('donation.hero.percent_funded', { percent: Math.round((totalRaised / goalAmount) * 100) })
+    : '—';
   
   // Form Fields
   const [cardholderName, setCardholderName] = useState('');
@@ -64,7 +69,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
 
     try {
       // 1. Create PaymentIntent on backend
-      const { data } = await axios.post('/api/donations/create-payment-intent', {
+      const { data } = await apiClient.post('/donations/create-payment-intent', {
         amount,
         currency: 'usd',
         donorInfo: {
@@ -93,7 +98,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
         setError(result.error.message || 'Payment failed');
       } else {
         if (result.paymentIntent.status === 'succeeded') {
-          await axios.post('/api/donations/confirm', {
+          await apiClient.post('/donations/confirm', {
             paymentIntentId: result.paymentIntent.id
           });
           
@@ -160,18 +165,18 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
                     <div className="flex justify-between items-end mb-2">
                     <span className="text-stone-500 font-medium text-sm uppercase tracking-wider">{t('donation.hero.raised')}</span>
                     <span className="text-3xl font-bold text-indigo-900">
-                      {loadingStats ? '—' : `$${totalRaised.toLocaleString()}`}
+                      {loadingStats ? '—' : displayTotal}
                     </span>
                     </div>
                     <div className="w-full bg-stone-100 rounded-full h-3 overflow-hidden">
                     <div 
                         className="bg-gradient-to-r from-indigo-900 to-rose-600 h-full rounded-full transition-all duration-1000 ease-out"
-                        style={{ width: loadingStats ? '15%' : `${Math.min((totalRaised / 100000) * 100, 100)}%` }}
+                        style={{ width: loadingStats ? '15%' : `${progressPercent}%` }}
                     ></div>
                     </div>
                     <div className="flex justify-between mt-2 text-xs text-stone-500">
                     <span>{t('donation.hero.goal', { amount: '$100,000' })}</span>
-                    <span>{loadingStats ? '...' : t('donation.hero.percent_funded', { percent: Math.round((totalRaised / 100000) * 100) })}</span>
+                    <span>{loadingStats ? '...' : percentLabel}</span>
                     </div>
                     {statsError && (
                       <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
@@ -505,7 +510,7 @@ const DonationForm: React.FC<{ totalRaised: number; statsError?: string; loading
 
 const DonationSection = forwardRef<HTMLDivElement>((_props, ref) => {
     const { t } = useTranslation();
-    const [totalRaised, setTotalRaised] = useState(75000); // Default fallback
+    const [totalRaised, setTotalRaised] = useState<number | null>(null);
     const [statsError, setStatsError] = useState<string | undefined>(undefined);
     const [loadingStats, setLoadingStats] = useState(true);
 
@@ -513,15 +518,17 @@ const DonationSection = forwardRef<HTMLDivElement>((_props, ref) => {
         const fetchStats = async () => {
             try {
                 setLoadingStats(true);
-                const { data } = await apiClient.get('/donations/stats');
-                if (data?.totalRaised) {
-                    setTotalRaised(data.totalRaised);
-                }
+            const { data } = await apiClient.get('/donations/stats');
+            if (typeof data?.totalRaised === 'number') {
+              setTotalRaised(data.totalRaised);
+            } else {
+              setTotalRaised(null);
+            }
             } catch (error) {
                 // Keep UI functional even if stats endpoint fails
                 console.warn('Donation stats unavailable', error);
                 setStatsError(t('donation.summary.stats_error'));
-                setTotalRaised((prev) => prev || 75000);
+            setTotalRaised(null);
             } finally {
                 setLoadingStats(false);
             }

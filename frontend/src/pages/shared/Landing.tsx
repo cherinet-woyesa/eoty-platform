@@ -1,5 +1,6 @@
-import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { landingApi } from '@/services/api/landing';
 import Header from '@/components/shared/Landing/Header';
 import Hero from '@/components/shared/Landing/Hero';
@@ -78,6 +79,8 @@ const SectionSkeleton: React.FC<{ cards?: number }> = ({ cards = 3 }) => (
   </section>
 );
 
+const buildCacheKey = (base: string, locale: string) => `${base}_${locale}`;
+
 const Landing: React.FC = () => {
   const [visibleSections, setVisibleSections] = useState<Set<string>>(new Set());
   const [activeSection, setActiveSection] = useState<string>('hero');
@@ -91,6 +94,8 @@ const Landing: React.FC = () => {
   const sectionRefs = useRef<{ [key: string]: HTMLElement | null }>({});
   const heroRef = useRef<HTMLElement>(null);
   const location = useLocation();
+  const { i18n } = useTranslation();
+  const locale = useMemo(() => (i18n.language || 'en').split('-')[0], [i18n.language]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId) || document.querySelector(`[data-section-id="${sectionId}"]`);
@@ -103,28 +108,29 @@ const Landing: React.FC = () => {
   // Fetch landing content + featured data in parallel with cache
   useEffect(() => {
     let isCancelled = false;
-    const cachedContent = readCache<any>('landing_content');
-    const cachedCourses = readCache<any[]>('landing_courses');
-    const cachedTestimonials = readCache<any[]>('landing_testimonials');
+    const cachedContent = readCache<any>(buildCacheKey('landing_content', locale));
+    const cachedCourses = readCache<any[]>(buildCacheKey('landing_courses', locale));
+    const cachedTestimonials = readCache<any[]>(buildCacheKey('landing_testimonials', locale));
 
     if (cachedContent) setLandingContent(cachedContent);
     if (cachedCourses) setFeaturedCourses(cachedCourses);
     if (cachedTestimonials) setTestimonials(cachedTestimonials);
 
     const hasCache = Boolean(cachedContent || cachedCourses || cachedTestimonials);
-    if (hasCache) setLoading(false);
+    setLoading(!hasCache);
+    setError(null);
 
     const fetchAll = async () => {
       try {
         const [contentRes, coursesRes, testimonialsRes] = await Promise.allSettled([
-          fetchWithRetry(() => landingApi.getContent(), 2, 300),
-          fetchWithRetry(() => landingApi.getFeaturedCourses(), 2, 300),
-          fetchWithRetry(() => landingApi.getTestimonials(), 2, 300)
+          fetchWithRetry(() => landingApi.getContent(locale), 2, 300),
+          fetchWithRetry(() => landingApi.getFeaturedCourses(locale), 2, 300),
+          fetchWithRetry(() => landingApi.getTestimonials(locale), 2, 300)
         ]);
 
         if (!isCancelled && contentRes.status === 'fulfilled' && contentRes.value.success && contentRes.value.data) {
           setLandingContent(contentRes.value.data);
-          writeCache('landing_content', contentRes.value.data);
+          writeCache(buildCacheKey('landing_content', locale), contentRes.value.data);
         } else if (!isCancelled && !cachedContent) {
           setError('Content unavailable, showing defaults.');
         }
@@ -132,13 +138,13 @@ const Landing: React.FC = () => {
         if (!isCancelled && coursesRes.status === 'fulfilled' && coursesRes.value.success && coursesRes.value.data) {
           const courses = coursesRes.value.data.courses || [];
           setFeaturedCourses(courses);
-          writeCache('landing_courses', courses);
+          writeCache(buildCacheKey('landing_courses', locale), courses);
         }
 
         if (!isCancelled && testimonialsRes.status === 'fulfilled' && testimonialsRes.value.success && testimonialsRes.value.data) {
           const testimonialsData = testimonialsRes.value.data.testimonials || [];
           setTestimonials(testimonialsData);
-          writeCache('landing_testimonials', testimonialsData);
+          writeCache(buildCacheKey('landing_testimonials', locale), testimonialsData);
         }
       } catch {
         if (!isCancelled && !cachedContent) {
@@ -155,7 +161,12 @@ const Landing: React.FC = () => {
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [locale]);
+
+  useEffect(() => {
+    setVisibleSections(new Set());
+    setActiveSection('hero');
+  }, [locale]);
 
   // Scroll to hash section when arriving with #donation-section, etc.
   useEffect(() => {

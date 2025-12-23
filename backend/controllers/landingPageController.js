@@ -4,6 +4,20 @@ const path = require('path');
 const fs = require('fs');
 const muxService = require('../services/muxService');
 
+const normalizeLocale = (value = 'en') => String(value || 'en').toLowerCase().slice(0, 10);
+let testimonialsLocaleColumnCache = null;
+const ensureTestimonialsLocaleSupport = async () => {
+  if (testimonialsLocaleColumnCache === null) {
+    try {
+      testimonialsLocaleColumnCache = await db.schema.hasColumn('testimonials', 'locale');
+    } catch (error) {
+      console.error('Failed to detect testimonials locale column:', error);
+      testimonialsLocaleColumnCache = false;
+    }
+  }
+  return testimonialsLocaleColumnCache;
+};
+
 // File filter for video files
 const fileFilter = (req, file, cb) => {
   if (file.mimetype.startsWith('video/')) {
@@ -89,6 +103,7 @@ const landingPageController = {
 
   // Get all landing page content
   async getContent(req, res) {
+    const locale = normalizeLocale(req.query.locale);
     const defaultContent = {
       hero: {
         badge: 'For Ethiopian Orthodox Youths',
@@ -200,9 +215,15 @@ const landingPageController = {
         });
       }
 
-      const content = await db('landing_page_content')
-        .where({ is_active: true })
+      let content = await db('landing_page_content')
+        .where({ is_active: true, locale })
         .first();
+
+      if (!content && locale !== 'en') {
+        content = await db('landing_page_content')
+          .where({ is_active: true, locale: 'en' })
+          .first();
+      }
 
       console.log('DEBUG: getContent - Found content record:', content ? 'Yes' : 'No');
       if (content) {
@@ -245,14 +266,16 @@ const landingPageController = {
 
       res.json({
         success: true,
-        data: mergedContent
+        data: mergedContent,
+        locale: content?.locale || locale
       });
     } catch (error) {
       console.error('Error fetching landing page content:', error);
       // Return default content on error to prevent UI breakage
       res.json({
         success: true,
-        data: defaultContent
+        data: defaultContent,
+        locale
       });
     }
   },
@@ -260,9 +283,9 @@ const landingPageController = {
   // Update landing page content (admin only)
   async updateContent(req, res) {
     try {
-      
-      const { section, content } = req.body;
+      const { section, content, locale = 'en' } = req.body;
       const userId = req.user.userId;
+      const normalizedLocale = normalizeLocale(locale);
 
       // Validate input
       if (!section || !content) {
@@ -295,7 +318,7 @@ const landingPageController = {
       // Get existing content
       console.log('📖 Fetching existing content...');
       let existingContent = await db('landing_page_content')
-        .where({ is_active: true })
+        .where({ is_active: true, locale: normalizedLocale })
         .first();
 
       let contentData = {};
@@ -331,7 +354,8 @@ const landingPageController = {
           .update({
             content_json: JSON.stringify(contentData),
             updated_at: new Date(),
-            updated_by: userId.toString()
+            updated_by: userId.toString(),
+            locale: normalizedLocale
           });
         console.log('✅ Record updated successfully. Rows affected:', updateResult);
       } else {
@@ -341,7 +365,8 @@ const landingPageController = {
           content_json: JSON.stringify(contentData),
           is_active: true,
           created_by: userId.toString(),
-          updated_by: userId.toString()
+          updated_by: userId.toString(),
+          locale: normalizedLocale
         });
         console.log('✅ New record created successfully');
       }
@@ -350,7 +375,8 @@ const landingPageController = {
       res.json({
         success: true,
         message: 'Landing page content updated successfully',
-        data: contentData
+        data: contentData,
+        locale: normalizedLocale
       });
     } catch (error) {
       console.error('❌ Error updating landing page content:', error);
@@ -366,14 +392,39 @@ const landingPageController = {
   // Get testimonials
   async getTestimonials(req, res) {
     try {
-      const testimonials = await db('testimonials')
-        .where({ is_active: true })
-        .orderBy('display_order', 'asc')
-        .select('id', 'name', 'role', 'content', 'rating', 'image_url');
+      const locale = normalizeLocale(req.query.locale);
+      const supportsLocale = await ensureTestimonialsLocaleSupport();
+      const selectFields = ['id', 'name', 'role', 'content', 'rating', 'image_url', 'display_order'];
+      if (supportsLocale) {
+        selectFields.push('locale');
+      }
+
+      const fetchByLocale = async (targetLocale) => {
+        const query = db('testimonials')
+          .where({ is_active: true })
+          .orderBy('display_order', 'asc')
+          .orderBy('id', 'asc')
+          .select(selectFields);
+
+        if (supportsLocale) {
+          query.andWhere('locale', targetLocale);
+        }
+
+        return query;
+      };
+
+      let resolvedLocale = locale;
+      let testimonials = await fetchByLocale(locale);
+
+      if (supportsLocale && !testimonials.length && locale !== 'en') {
+        testimonials = await fetchByLocale('en');
+        resolvedLocale = 'en';
+      }
 
       res.json({
         success: true,
-        data: { testimonials }
+        data: { testimonials },
+        locale: resolvedLocale
       });
     } catch (error) {
       console.error('Error fetching testimonials:', error);
@@ -388,8 +439,10 @@ const landingPageController = {
   // Add/Update testimonial (admin only)
   async saveTestimonial(req, res) {
     try {
-      const { id, name, role, content, rating, imageUrl, displayOrder } = req.body;
+      const { id, name, role, content, rating, imageUrl, displayOrder, locale = 'en' } = req.body;
       const userId = req.user.userId;
+      const normalizedLocale = normalizeLocale(locale);
+      const supportsLocale = await ensureTestimonialsLocaleSupport();
 
       // Verify admin permissions
       const user = await db('users').where({ id: userId }).first();
@@ -400,30 +453,34 @@ const landingPageController = {
         });
       }
 
+      const basePayload = {
+        name,
+        role,
+        content,
+        rating,
+        image_url: imageUrl,
+        display_order: typeof displayOrder === 'number' ? displayOrder : 0
+      };
+
+      if (supportsLocale) {
+        basePayload.locale = normalizedLocale;
+      }
+
       if (id) {
         // Update existing
         await db('testimonials')
           .where({ id })
           .update({
-            name,
-            role,
-            content,
-            rating,
-            image_url: imageUrl,
-            display_order: displayOrder,
+            ...basePayload,
             updated_at: db.fn.now()
           });
       } else {
         // Create new
         await db('testimonials').insert({
-          name,
-          role,
-          content,
-          rating,
-          image_url: imageUrl,
-          display_order: displayOrder || 0,
+          ...basePayload,
           is_active: true,
-          created_by: userId
+          created_by: userId,
+          updated_at: db.fn.now()
         });
       }
 

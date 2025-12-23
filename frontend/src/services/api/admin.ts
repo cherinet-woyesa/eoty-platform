@@ -418,8 +418,8 @@ export const adminApi = {
   },
 
   // Landing Page Content Management
-  updateLandingContent: async (section: string, content: any) => {
-    const response = await apiClient.put('/landing/content', { section, content });
+  updateLandingContent: async (section: string, content: any, locale: string = 'en') => {
+    const response = await apiClient.put('/landing/content', { section, content, locale });
     return response.data;
   },
 
@@ -433,8 +433,8 @@ export const adminApi = {
     return response.data;
   },
 
-  getLandingContent: async () => {
-    const response = await apiClient.get('/landing/content');
+  getLandingContent: async (locale?: string) => {
+    const response = await apiClient.get('/landing/content', locale ? { params: { locale } } : undefined);
     return response.data;
   },
 

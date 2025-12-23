@@ -17,6 +17,8 @@
     "logout": "Ka Bax",
     "login": "Galo",
     "register": "Is Diiwaan Gali",
+    "logo_alt": "Astaanta madalkeenna",
+    "back_to_landing": "Ku laabo bogga hore",
     "email": "Imeel",
     "password": "Furaha",
     "confirm_password": "Furaha Xaqiiji",
@@ -463,7 +465,9 @@
     "login": {
       "title": "Soo gal akoonkaaga",
       "subtitle": "Sii wadnaadinta barashadaada iyo hawshaha bulshadaada",
+      "email_label": "Cinwaanka Emailka",
       "email_placeholder": "Gali emailkaaga",
+      "password_label": "Furaha Sirta ah",
       "password_placeholder": "Gali furahaaga",
       "forgot_password": "Furaha ilaawday?",
       "login_button": "Soo gal akoonkaaga",
@@ -504,9 +508,23 @@
       "password_placeholder": "Samee furaha sirta ah",
       "confirm_password_placeholder": "Xaqiiji furaha sirta ah",
       "chapter_placeholder": "Dooro cutubkaaga",
+      "chapter_retrying": "Mar kale isku dayayaa...",
+      "chapter_retry": "Dib u rar cutubyada",
+      "try_location": "Adeegso goobtayda",
       "register_button": "Iska diiwaan geli",
+      "or_continue": "Ama sii wad",
       "have_account": "Akoon ma leedahay?",
-      "login_link": "Halkan ka soo gal"
+      "login_link": "Halkan ka soo gal",
+      "errors": {
+        "chapters_unavailable": "Cutubyadu hadda lama soo dejin karo. Fadlan isku day mar kale ama u wareeg raadinta meelaha dhow."
+      }
+    },
+    "social": {
+      "connecting": "Ku xirnaanaya...",
+      "google": "Google",
+      "google_aria": "Soo gal Google",
+      "facebook": "Facebook",
+      "facebook_aria": "Soo gal Facebook"
     }
   },
   "ai_labeling": {

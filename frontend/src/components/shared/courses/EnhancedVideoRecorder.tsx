@@ -495,6 +495,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
 
       setSuccessMessage(t('record_video.edit_success', 'Video edited successfully! Ready to upload.'));
       setShowPreview(false);
+      setShowTimelineEditor(false);
       setShowLessonForm(true); // Go back to upload form after editing
       setRecordingStatus('idle');
 
@@ -2351,12 +2352,7 @@ const VideoRecorder: FC<VideoRecorderProps> = ({
             onClose={() => setShowProcessingStatus(false)}
             onProcessingComplete={handleProcessingComplete}
             onViewLesson={() => {
-              const targetCourseId = courseId || selectedCourse;
-              if (targetCourseId) {
-                navigate(`/teacher/courses/${targetCourseId}`);
-              } else {
-                navigate('/dashboard');
-              }
+              navigate(`/teacher/content?lessonId=${processingLessonId}`);
             }}
             videoProvider="mux"
           />

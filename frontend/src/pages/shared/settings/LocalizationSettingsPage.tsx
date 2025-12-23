@@ -116,17 +116,16 @@ const LocalizationSettingsPage: React.FC = () => {
               {availableLocales.length > 0 ? (
                 availableLocales.map((locale: any) => (
                   <option key={locale.code} value={locale.code}>
-                    {locale.flag} {locale.name}
+                    {locale.flag ? `${locale.flag} ` : ''}{locale.name || locale.label}
                   </option>
                 ))
               ) : (
                 <>
                   <option value="en">🇺🇸 English</option>
-                  <option value="es">🇪🇸 Español</option>
-                  <option value="fr">🇫🇷 Français</option>
-                  <option value="de">🇩🇪 Deutsch</option>
-                  <option value="ar">🇸🇦 العربية</option>
-                  <option value="zh">🇨🇳 中文</option>
+                  <option value="am">🇪🇹 አማርኛ</option>
+                  <option value="ti">🇪🇷 ትግርኛ</option>
+                  <option value="om">🇪🇹 Afaan Oromoo</option>
+                  <option value="so">🇸🇴 Soomaali</option>
                 </>
               )}
             </select>

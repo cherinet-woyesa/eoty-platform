@@ -1,6 +1,6 @@
 import React, { useEffect, useState, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { brandColors } from '@/theme/brand';
 import Header from '@/components/shared/Landing/Header';
 import LanguageSelector from '@/components/common/LanguageSelector';
@@ -13,6 +13,7 @@ interface AuthLayoutProps {
 }
 
 const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle }) => {
+  const { t } = useTranslation();
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -125,7 +126,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
               <div className="flex justify-center mb-6">
                 <div className="relative group">
                 <div className="relative w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center shadow-sm border border-gray-100 overflow-hidden">
-                    <img src="/eoc.jpg" alt="Logo" className="w-full h-full object-cover" />
+                    <img src="/eoc.jpg" alt={t('common.logo_alt')} className="w-full h-full object-cover" />
                   </div>
                 </div>
               </div>
@@ -149,7 +150,7 @@ const AuthLayout: React.FC<AuthLayoutProps> = memo(({ children, title, subtitle 
                   to="/"
                   className="text-sm text-slate-600 hover:text-slate-800 font-medium transition-colors"
                 >
-                  ← Back to landing page
+                  ← {t('common.back_to_landing')}
                 </Link>
               </div>
 

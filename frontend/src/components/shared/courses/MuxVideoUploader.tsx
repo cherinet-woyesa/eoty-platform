@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import MuxUploader from '@mux/mux-uploader-react';
 import { apiClient } from '@/services/api/apiClient';
 import { Upload, CheckCircle, AlertCircle, Loader, X } from 'lucide-react';
+import { brandColors } from '@/theme/brand';
 
 interface MuxVideoUploaderProps {
   lessonId: string;
@@ -285,14 +286,14 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
       )}
 
       {uploadStatus === 'success' && (
-        <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start space-x-3">
-          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+        <div className="mb-4 p-4 rounded-lg flex items-start space-x-3 border" style={{ backgroundColor: `${brandColors.accentHex}1A`, borderColor: `${brandColors.accentHex}4D` }}>
+          <CheckCircle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: brandColors.accentHex }} />
           <div className="flex-1">
-            <h4 className="text-sm font-semibold text-green-900">Upload Complete</h4>
-            <p className="text-sm text-green-700 mt-1">
+            <h4 className="text-sm font-semibold" style={{ color: brandColors.accentHex }}>Upload Complete</h4>
+            <p className="text-sm mt-1" style={{ color: '#1e2a55' }}>
               Upload complete. You can safely close this window. A success message will appear when processing is done.
             </p>
-            <p className="text-sm text-green-700 mt-2">
+            <p className="text-sm mt-2" style={{ color: '#1e2a55' }}>
               <strong>Note:</strong> The video will be available for playback in a few minutes after Mux finishes processing it. You can close this window and check back later.
             </p>
           </div>
@@ -301,18 +302,18 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
 
       {/* Upload Progress */}
       {uploadStatus === 'uploading' && (videoBlob || uploadProgress <= 5) && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-4 p-4 rounded-lg border" style={{ backgroundColor: `${brandColors.primaryHex}0D`, borderColor: `${brandColors.primaryHex}33` }}>
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <Loader className="h-4 w-4 text-blue-600 animate-spin" />
-              <span className="text-sm font-medium text-blue-900">Uploading...</span>
+              <Loader className="h-4 w-4 animate-spin" style={{ color: brandColors.primaryHex }} />
+              <span className="text-sm font-medium" style={{ color: brandColors.primaryHex }}>Uploading...</span>
             </div>
-            <span className="text-sm font-semibold text-blue-900">{uploadProgress}%</span>
+            <span className="text-sm font-semibold" style={{ color: brandColors.primaryHex }}>{uploadProgress}%</span>
           </div>
-          <div className="w-full bg-blue-200 rounded-full h-2">
+          <div className="w-full rounded-full h-2" style={{ backgroundColor: `${brandColors.primaryHex}33` }}>
             <div
-              className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${uploadProgress}%` }}
+              className="h-2 rounded-full transition-all duration-300"
+              style={{ width: `${uploadProgress}%`, backgroundColor: brandColors.primaryHex }}
             />
           </div>
         </div>
@@ -331,7 +332,8 @@ const MuxVideoUploader: FC<MuxVideoUploaderProps> = ({
           <button
             onClick={handleInitialize}
             disabled={isLoading}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 mx-auto"
+            className="px-6 py-3 text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2 mx-auto"
+            style={{ backgroundColor: brandColors.primaryHex }}
           >
             {isLoading ? (
               <>

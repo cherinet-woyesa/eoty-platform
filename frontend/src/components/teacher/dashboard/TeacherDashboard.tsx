@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next';
 import {
   BookOpen, Users, Plus,
   RefreshCw, Megaphone, Calendar,
-  AlertTriangle
+  AlertTriangle, Loader2
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import TeacherMetrics from './TeacherMetrics';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { apiClient } from '@/services/api/apiClient';
+import { chaptersApi } from '@/services/api/chapters';
 import ErrorBoundary from '@/components/common/ErrorBoundary';
 import DashboardSkeleton from './DashboardSkeleton';
 import ProfileCompletionModal from '@/components/shared/ProfileCompletionModal';
@@ -31,6 +32,51 @@ interface TeacherStats {
   upcomingTasks: any[];
 }
 
+type AnnouncementSource = 'global' | 'chapter';
+
+interface AnnouncementItem {
+  id: string;
+  title: string;
+  body: string;
+  createdAt?: string;
+  source: AnnouncementSource;
+  priority?: string;
+}
+
+interface EventItem {
+  id: string;
+  title: string;
+  description?: string;
+  startTime?: string;
+  location?: string;
+  isOnline?: boolean;
+  meetingLink?: string;
+  source: AnnouncementSource;
+}
+
+interface TeacherChapter {
+  chapter_id: number;
+  chapter_name?: string;
+  name?: string;
+  is_primary?: boolean;
+  [key: string]: any;
+}
+
+const parseNumericId = (value: unknown): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const nested = record.id ?? record['chapter_id'] ?? record['chapterId'];
+    return parseNumericId(nested);
+  }
+
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : null;
+};
+
 const TeacherDashboard: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -50,6 +96,7 @@ const TeacherDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<number>(Date.now());
+  const [activeChapterId, setActiveChapterId] = useState<number | null>(null);
 
   const { data: dashboardResp, isLoading: queryLoading, isError: queryError, refetch } = useQuery({
     queryKey: ['teacher-dashboard'],
@@ -64,6 +111,236 @@ const TeacherDashboard: React.FC = () => {
     staleTime: 2 * 60 * 1000,
     retry: 1
   });
+
+  const { data: teacherChaptersResponse } = useQuery({
+    queryKey: ['teacher-chapters'],
+    enabled: !!user && user.role === 'teacher',
+    queryFn: async () => chaptersApi.getUserChapters(),
+    staleTime: 5 * 60 * 1000
+  });
+
+  const teacherChapters = useMemo<TeacherChapter[]>(() => {
+    const rows = teacherChaptersResponse?.data?.chapters;
+    if (!Array.isArray(rows)) {
+      return [];
+    }
+
+    return rows
+      .map((chapter: any) => {
+        const numericId = parseNumericId(chapter?.chapter_id ?? chapter?.id ?? chapter?.chapterId);
+        if (!numericId) {
+          return null;
+        }
+        return { ...chapter, chapter_id: numericId } as TeacherChapter;
+      })
+      .filter((chapter): chapter is TeacherChapter => Boolean(chapter));
+  }, [teacherChaptersResponse]);
+
+  useEffect(() => {
+    if (activeChapterId || !user || user.role !== 'teacher') return;
+    const anyUser = user as any;
+    const candidate = parseNumericId(anyUser?.chapterId ?? anyUser?.chapter_id ?? anyUser?.chapter);
+    if (candidate) {
+      setActiveChapterId(candidate);
+    }
+  }, [user, activeChapterId]);
+
+  useEffect(() => {
+    if (!teacherChapters.length) return;
+    const preferred = teacherChapters.find((chapter) => chapter.is_primary);
+    const fallbackChapter = preferred || teacherChapters[0];
+    if (fallbackChapter && fallbackChapter.chapter_id !== activeChapterId) {
+      setActiveChapterId(fallbackChapter.chapter_id);
+    }
+  }, [teacherChapters, activeChapterId]);
+
+  const activeChapterName = useMemo(() => {
+    if (!activeChapterId) return null;
+    const current = teacherChapters.find((chapter) => chapter.chapter_id === activeChapterId);
+    return current?.chapter_name || current?.name || null;
+  }, [teacherChapters, activeChapterId]);
+
+  const {
+    data: chapterAnnouncementsData,
+    isLoading: isLoadingChapterAnnouncements,
+    refetch: refetchChapterAnnouncements
+  } = useQuery({
+    queryKey: ['teacher-chapter-announcements', activeChapterId],
+    queryFn: () => chaptersApi.getAnnouncements(activeChapterId as number),
+    enabled: !!user && user.role === 'teacher' && !!activeChapterId
+  });
+
+  const {
+    data: chapterEventsData,
+    isLoading: isLoadingChapterEvents,
+    refetch: refetchChapterEvents
+  } = useQuery({
+    queryKey: ['teacher-chapter-events', activeChapterId],
+    queryFn: () => chaptersApi.getEvents(activeChapterId as number),
+    enabled: !!user && user.role === 'teacher' && !!activeChapterId
+  });
+
+  const {
+    data: globalAnnouncementsData,
+    isLoading: isLoadingGlobalAnnouncements,
+    refetch: refetchGlobalAnnouncements
+  } = useQuery({
+    queryKey: ['teacher-global-announcements'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/interactive/announcements/global');
+        return res.data;
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('Global announcements fetch failed', err);
+        }
+        return { data: { announcements: [] } };
+      }
+    },
+    enabled: !!user && user.role === 'teacher',
+    staleTime: 60_000
+  });
+
+  const {
+    data: globalEventsData,
+    isLoading: isLoadingGlobalEvents,
+    refetch: refetchGlobalEvents
+  } = useQuery({
+    queryKey: ['teacher-global-events'],
+    queryFn: async () => {
+      try {
+        const res = await apiClient.get('/interactive/events/global');
+        return res.data;
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('Global events fetch failed', err);
+        }
+        return { data: { events: [] } };
+      }
+    },
+    enabled: !!user && user.role === 'teacher',
+    staleTime: 60_000
+  });
+
+  const announcements = useMemo<AnnouncementItem[]>(() => {
+    const combined: AnnouncementItem[] = [];
+    const chapterList = Array.isArray(chapterAnnouncementsData?.data?.announcements)
+      ? chapterAnnouncementsData.data.announcements
+      : Array.isArray(chapterAnnouncementsData?.announcements)
+        ? chapterAnnouncementsData.announcements
+        : [];
+
+    chapterList.forEach((item: any) => {
+      combined.push({
+        id: `chapter-${item.id}`,
+        title: item.title || t('dashboard.teacher.announcement_fallback_title', 'Chapter announcement'),
+        body: item.content || item.body || '',
+        createdAt: item.created_at || item.createdAt,
+        source: 'chapter',
+        priority: item.priority || (item.is_pinned ? 'high' : undefined)
+      });
+    });
+
+    const globalList = Array.isArray(globalAnnouncementsData?.data?.announcements)
+      ? globalAnnouncementsData.data.announcements
+      : Array.isArray(globalAnnouncementsData?.announcements)
+        ? globalAnnouncementsData.announcements
+        : [];
+
+    globalList.forEach((item: any) => {
+      combined.push({
+        id: `global-${item.id}`,
+        title: item.title || item.content || t('dashboard.teacher.announcement_fallback_title', 'Platform announcement'),
+        body: item.content || item.body || item.message || '',
+        createdAt: item.created_at || item.createdAt,
+        source: 'global',
+        priority: item.priority
+      });
+    });
+
+    return combined
+      .filter((item) => item.title || item.body)
+      .sort((a, b) => {
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      })
+      .slice(0, 4);
+  }, [chapterAnnouncementsData, globalAnnouncementsData, t]);
+
+  const events = useMemo<EventItem[]>(() => {
+    const combined: EventItem[] = [];
+    const chapterList = Array.isArray(chapterEventsData?.data?.events)
+      ? chapterEventsData.data.events
+      : Array.isArray(chapterEventsData?.events)
+        ? chapterEventsData.events
+        : [];
+
+    chapterList.forEach((event: any) => {
+      combined.push({
+        id: `chapter-${event.id}`,
+        title: event.title || t('dashboard.teacher.event_fallback_title', 'Chapter event'),
+        description: event.description || '',
+        startTime: event.event_date || event.start_time || event.startTime,
+        location: event.location || event.location_name,
+        isOnline: Boolean(event.is_online || event.isOnline),
+        meetingLink: event.meeting_link || event.meetingLink,
+        source: 'chapter'
+      });
+    });
+
+    const globalList = Array.isArray(globalEventsData?.data?.events)
+      ? globalEventsData.data.events
+      : Array.isArray(globalEventsData?.events)
+        ? globalEventsData.events
+        : [];
+
+    globalList.forEach((event: any) => {
+      combined.push({
+        id: `global-${event.id}`,
+        title: event.title || t('dashboard.teacher.event_fallback_title', 'Community event'),
+        description: event.description || '',
+        startTime: event.start_time || event.startTime,
+        location: event.location,
+        isOnline: Boolean(event.is_online || event.isOnline),
+        meetingLink: event.meeting_link || event.meetingLink,
+        source: 'global'
+      });
+    });
+
+    return combined
+      .filter((event) => event.startTime)
+      .filter((event) => {
+        if (!event.startTime) return false;
+        const timestamp = new Date(event.startTime).getTime();
+        return Number.isFinite(timestamp);
+      })
+      .sort((a, b) => {
+        const aTime = a.startTime ? new Date(a.startTime).getTime() : 0;
+        const bTime = b.startTime ? new Date(b.startTime).getTime() : 0;
+        return aTime - bTime;
+      })
+      .slice(0, 4);
+  }, [chapterEventsData, globalEventsData, t]);
+
+  const announcementsLoading = isLoadingGlobalAnnouncements || isLoadingChapterAnnouncements;
+  const eventsLoading = isLoadingGlobalEvents || isLoadingChapterEvents;
+
+  const formatDateTime = useCallback((value?: string) => {
+    if (!value) {
+      return t('dashboard.teacher.date_tbd', 'TBD');
+    }
+    const parsed = new Date(value);
+    if (!Number.isFinite(parsed.getTime())) {
+      return t('dashboard.teacher.date_tbd', 'TBD');
+    }
+    return parsed.toLocaleString(i18n.language, {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }, [i18n.language, t]);
 
   useEffect(() => {
     if (dashboardResp) {
@@ -201,7 +478,27 @@ const TeacherDashboard: React.FC = () => {
 
   const handleRetry = useCallback(() => {
     refetch();
-  }, [refetch]);
+    refetchChapterAnnouncements();
+    refetchGlobalAnnouncements();
+    refetchChapterEvents();
+    refetchGlobalEvents();
+  }, [
+    refetch,
+    refetchChapterAnnouncements,
+    refetchGlobalAnnouncements,
+    refetchChapterEvents,
+    refetchGlobalEvents
+  ]);
+
+  const handleAnnouncementCreated = useCallback(() => {
+    refetchChapterAnnouncements();
+    refetchGlobalAnnouncements();
+  }, [refetchChapterAnnouncements, refetchGlobalAnnouncements]);
+
+  const handleEventCreated = useCallback(() => {
+    refetchChapterEvents();
+    refetchGlobalEvents();
+  }, [refetchChapterEvents, refetchGlobalEvents]);
 
   const lastUpdatedLabel = useMemo(() => {
     if (!lastUpdated) return t('admin.dashboard.time.never');
@@ -316,7 +613,7 @@ const TeacherDashboard: React.FC = () => {
           </div>
         </div>
 
-        <TeacherMetrics stats={teacherData} />
+       
 
         {teacherData.totalCourses === 0 && !isLoading && (
           <section className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center shadow-sm">
@@ -439,19 +736,174 @@ const TeacherDashboard: React.FC = () => {
             </button>
           </div>
         </section>
+
+        <section className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-gray-50 p-2 text-gray-600">
+                  <Megaphone className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    {t('dashboard.teacher.announcements')}
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    {t('dashboard.teacher.announcements_desc')}
+                  </p>
+                </div>
+              </div>
+              {announcementsLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              ) : (
+                <span className="text-xs text-gray-500">
+                  {activeChapterName
+                    ? t('dashboard.teacher.chapter_scope', {
+                        chapter: activeChapterName,
+                        defaultValue: `Chapter · ${activeChapterName}`
+                      })
+                    : t('dashboard.teacher.global_scope', 'Global updates')}
+                </span>
+              )}
+            </div>
+            {announcementsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((skeleton) => (
+                  <div key={skeleton} className="h-20 rounded-lg border border-gray-100 bg-gray-50 animate-pulse" />
+                ))}
+              </div>
+            ) : announcements.length > 0 ? (
+              <div className="space-y-3">
+                {announcements.map((item) => {
+                  const badgeClasses = item.source === 'chapter'
+                    ? 'bg-blue-50 text-blue-700 border-blue-100'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                  return (
+                    <div key={item.id} className="rounded-lg border border-gray-100 p-4 hover:border-gray-200 transition">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.body}</p>
+                        </div>
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badgeClasses}`}>
+                          {item.source === 'chapter'
+                            ? t('dashboard.teacher.chapter_label', 'Chapter')
+                            : t('dashboard.teacher.global_label', 'Global')}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-gray-500">
+                        <span>{formatDateTime(item.createdAt)}</span>
+                        {item.priority && (
+                          <span className="uppercase tracking-wide text-gray-400">
+                            {t('dashboard.teacher.priority', 'Priority')}: {item.priority}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                {t('dashboard.teacher.no_announcements', 'No announcements just yet.')}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div className="flex items-start gap-3">
+                <div className="rounded-lg bg-gray-50 p-2 text-gray-600">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{t('dashboard.teacher.events')}</h3>
+                  <p className="text-xs text-gray-500">{t('dashboard.teacher.events_desc')}</p>
+                </div>
+              </div>
+              {eventsLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+              ) : (
+                <span className="text-xs text-gray-500">
+                  {t('dashboard.teacher.upcoming_count', {
+                    count: events.length,
+                    defaultValue: `${events.length} upcoming`
+                  })}
+                </span>
+              )}
+            </div>
+            {eventsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((skeleton) => (
+                  <div key={skeleton} className="h-24 rounded-lg border border-gray-100 bg-gray-50 animate-pulse" />
+                ))}
+              </div>
+            ) : events.length > 0 ? (
+              <div className="space-y-3">
+                {events.map((event) => {
+                  const badgeClasses = event.source === 'chapter'
+                    ? 'bg-blue-50 text-blue-700 border-blue-100'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                  return (
+                    <div key={event.id} className="rounded-lg border border-gray-100 p-4 hover:border-gray-200 transition">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-semibold text-gray-900">{event.title}</p>
+                          {event.description && (
+                            <p className="text-xs text-gray-500 line-clamp-2">{event.description}</p>
+                          )}
+                          <div className="text-[11px] text-gray-500 space-y-0.5">
+                            <p>{formatDateTime(event.startTime)}</p>
+                            {event.location && (
+                              <p>
+                                {event.isOnline
+                                  ? `${event.location} · ${t('dashboard.teacher.online', 'Online')}`
+                                  : event.location}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full border ${badgeClasses}`}>
+                          {event.source === 'chapter'
+                            ? t('dashboard.teacher.chapter_label', 'Chapter')
+                            : t('dashboard.teacher.global_label', 'Global')}
+                        </span>
+                      </div>
+                      {event.meetingLink && (
+                        <a
+                          href={event.meetingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-3 inline-flex items-center text-xs font-semibold text-emerald-700 hover:text-emerald-900"
+                        >
+                          {t('dashboard.teacher.join_event', 'Open details')}
+                          <span className="ml-1" aria-hidden="true">→</span>
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 p-6 text-center text-sm text-gray-500">
+                {t('dashboard.teacher.no_events', 'No upcoming events.')}
+              </div>
+            )}
+          </div>
+        </section>
       </div>
       
       <CreateAnnouncementModal
         isOpen={showAnnouncementModal}
         onClose={() => setShowAnnouncementModal(false)}
-        onSuccess={() => {}}
+        onSuccess={handleAnnouncementCreated}
         type="teacher"
       />
       
       <CreateEventModal
         isOpen={showEventModal}
         onClose={() => setShowEventModal(false)}
-        onSuccess={() => {}}
+        onSuccess={handleEventCreated}
         type="teacher"
       />
     </ErrorBoundary>

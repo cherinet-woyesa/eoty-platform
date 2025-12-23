@@ -17,6 +17,8 @@
     "logout": "Ba'i",
     "login": "Seeni",
     "register": "Galmaa'i",
+    "logo_alt": "Mallattoo madalicha",
+    "back_to_landing": "Gara fuula jalqabaa deebi'i",
     "email": "Imeelii",
     "password": "Jechi iccitii",
     "confirm_password": "Jechi iccitii mirkaneessi",
@@ -418,7 +420,9 @@
     "login": {
       "title": "Seeni Akkaawuntii Keessanii",
       "subtitle": "Barbaadota keessanii fi saayintii walxaxaa keessanii hiriirfamu",
+      "email_label": "Imeelii",
       "email_placeholder": "Imeelii keessanii galchi",
+      "password_label": "Jechi iccitii",
       "password_placeholder": "Jechi iccitii keessanii galchi",
       "forgot_password": "Jechi iccitii Keessaa Hin Yaaddinoota?",
       "login_button": "Seeni Akkaawuntii Keessanii",
@@ -459,9 +463,23 @@
       "password_placeholder": "Jechi iccitii uumi",
       "confirm_password_placeholder": "Jechi iccitii keessanii mirkaneessi",
       "chapter_placeholder": "Koota keessanii filadhu",
+      "chapter_retrying": "Irra deebi'aa yaalaa jira...",
+      "chapter_retry": "Kootaa fe'uu irra deebi'i",
+      "try_location": "Bakka koo fayyadami",
       "register_button": "Galmaa'i",
+      "or_continue": "Yookiin itti fufi",
       "have_account": "Akkaawuntii Qabdu?",
-      "login_link": "Asitti Seenaa"
+      "login_link": "Asitti Seenaa",
+      "errors": {
+        "chapters_unavailable": "Kootaan amma hin fe'amne. Mee irra deebi'i yookiin gara barbaacha naannoo geessi."
+      }
+    },
+    "social": {
+      "connecting": "Wal qunnamtii irratti...",
+      "google": "Google",
+      "google_aria": "Google fayyadami seeni",
+      "facebook": "Facebook",
+      "facebook_aria": "Facebook fayyadami seeni"
     }
   },
   "teacher_profile.payout_setup": {

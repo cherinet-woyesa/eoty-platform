@@ -1,6 +1,6 @@
 import { Play, Clock, ArrowRight, X, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { forwardRef, useMemo, useState } from 'react';
+import { forwardRef, useState } from 'react';
 import MuxPlayer from '@mux/mux-player-react';
 import { brandColors } from '@/theme/brand';
 import { useTranslation } from 'react-i18next';
@@ -13,7 +13,28 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
   const { t } = useTranslation();
   const videos = landingContent.videos || [];
   const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const getInitials = (name?: string) => {
+    if (!name) return 'ET';
+    const parts = name.trim().split(/\s+/).slice(0, 2);
+    const initials = parts.map(part => part.charAt(0).toUpperCase()).join('');
+    return initials || 'ET';
+  };
+
+  const renderStaticThumbnail = (video: any) => (
+    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-[#1c2753] via-[#243065] to-[#b8863b] text-white">
+      <Play className="w-10 h-10 mb-2" />
+      <span className="text-sm font-semibold px-4 text-center line-clamp-2">
+        {video.title || t('landing.videos.placeholder_title', 'Featured video')}
+      </span>
+    </div>
+  );
+
+  const stopPlayback = () => {
+    setPlayingVideoIndex(null);
+    setIsLoading(false);
+  };
 
   return (
     <section ref={ref} id="video-section" data-section-id="video-section" className="py-16 md:py-20 relative overflow-hidden bg-[#fdfbf7]">
@@ -45,17 +66,17 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-          {videos.map((video: any, index: number) => (
-            <div 
-              key={index} 
-              className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
-            >
-              {/* Thumbnail Container or Video Player */}
-              <div className="relative aspect-video overflow-hidden bg-gray-900">
-                {playingVideoIndex === index ? (
-                  <div className="w-full h-full">
-                    {(video.videoUrl?.includes('youtube') || video.videoUrl?.includes('youtu.be')) ? (
-                      <>
+          {videos.map((video: any, index: number) => {
+            const isPlaying = playingVideoIndex === index;
+            return (
+              <div 
+                key={index} 
+                className="group bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
+              >
+                <div className="relative aspect-video overflow-hidden bg-gray-900">
+                  {isPlaying ? (
+                    <div className="w-full h-full">
+                      {(video.videoUrl?.includes('youtube') || video.videoUrl?.includes('youtu.be')) ? (
                         <iframe
                           src={video.videoUrl
                             .replace('watch?v=', 'embed/')
@@ -67,139 +88,147 @@ const VideoSection = forwardRef<HTMLElement, VideoSectionProps>(({ landingConten
                           loading="lazy"
                           className="w-full h-full"
                         />
-                      </>
-                    ) : video.videoUrl?.includes('mux.com') ? (
-                      <MuxPlayer
-                        streamType="on-demand"
-                        playbackId={video.videoUrl?.split('/').pop()?.replace('.m3u8', '')}
-                        metadata={{
-                          video_title: video.title,
-                          viewer_user_id: 'anonymous',
-                        }}
-                        poster={video.thumbnail}
-                        autoPlay
-                        muted
-                        playsInline
-                        onLoadedMetadata={() => setIsLoading(false)}
-                        onCanPlay={() => setIsLoading(false)}
-                        onWaiting={() => setIsLoading(true)}
-                        onEnded={() => setPlayingVideoIndex(null)}
-                        style={{ aspectRatio: '16/9', // @ts-ignore CSS var for mux-player
-                          ['--media-object-fit' as any]: 'cover' }}
-                        className="w-full h-full"
-                      />
-                    ) : (
-                      <video
-                        controls
-                        autoPlay
-                        muted
-                        playsInline
-                        poster={video.thumbnail}
-                        onLoadedMetadata={() => setIsLoading(false)}
-                        onCanPlay={() => setIsLoading(false)}
-                        onWaiting={() => setIsLoading(true)}
-                        onEnded={() => setPlayingVideoIndex(null)}
-                        className="w-full h-full object-cover"
-                        src={video.videoUrl?.startsWith('http') ? video.videoUrl : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${video.videoUrl}`}
+                      ) : video.videoUrl?.includes('mux.com') ? (
+                        <MuxPlayer
+                          streamType="on-demand"
+                          playbackId={video.videoUrl?.split('/').pop()?.replace('.m3u8', '')}
+                          metadata={{
+                            video_title: video.title,
+                            viewer_user_id: 'anonymous',
+                          }}
+                          poster={video.thumbnail}
+                          autoPlay
+                          muted
+                          playsInline
+                          onLoadedMetadata={() => setIsLoading(false)}
+                          onCanPlay={() => setIsLoading(false)}
+                          onWaiting={() => setIsLoading(true)}
+                          onEnded={stopPlayback}
+                          style={{ aspectRatio: '16/9', // @ts-ignore CSS var for mux-player
+                            ['--media-object-fit' as any]: 'cover' }}
+                          className="w-full h-full"
+                        />
+                      ) : (
+                        <video
+                          controls
+                          autoPlay
+                          muted
+                          playsInline
+                          poster={video.thumbnail}
+                          onLoadedMetadata={() => setIsLoading(false)}
+                          onCanPlay={() => setIsLoading(false)}
+                          onWaiting={() => setIsLoading(true)}
+                          onEnded={stopPlayback}
+                          className="w-full h-full object-cover"
+                          src={video.videoUrl?.startsWith('http') ? video.videoUrl : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${video.videoUrl}`}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      )}
+
+                      <button
+                        aria-label="Close video"
+                        onClick={stopPlayback}
+                        className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
                       >
-                        Your browser does not support the video tag.
-                      </video>
-                    )}
+                        <X className="w-4 h-4" />
+                      </button>
 
-                    {/* Close button */}
-                    <button
-                      aria-label="Close video"
-                      onClick={() => setPlayingVideoIndex(null)}
-                      className="absolute top-2 right-2 z-10 p-2 rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+                      {isLoading && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Loader2 className="h-8 w-8 text-white animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div 
+                      className="w-full h-full cursor-pointer relative"
+                      onClick={() => {
+                        setIsLoading(true);
+                        setPlayingVideoIndex(index);
+                      }}
                     >
-                      <X className="w-4 h-4" />
-                    </button>
+                      {video.thumbnail ? (
+                        <img 
+                          loading="lazy"
+                          decoding="async"
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full h-full object-cover opacity-90 group-hover:opacity-75 group-hover:scale-110 transition-all duration-700"
+                        />
+                      ) : (
+                        renderStaticThumbnail(video)
+                      )}
 
-                    {/* Loading overlay */}
-                    {isLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                        <Loader2 className="h-8 w-8 text-white animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div 
-                    className="w-full h-full cursor-pointer relative"
-                    onClick={() => { setIsLoading(true); setPlayingVideoIndex(index); }}
-                  >
-                    <img 
-                      loading="lazy"
-                      decoding="async"
-                      src={video.thumbnail || `https://source.unsplash.com/random/800x600?church,ethiopia&sig=${index}`} 
-                      alt={video.title}
-                      className="w-full h-full object-cover opacity-90 group-hover:opacity-75 group-hover:scale-110 transition-all duration-700"
-                    />
-                    
-                    {/* Play Button Overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20">
-                      <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transform scale-50 group-hover:scale-100 transition-all duration-300 border border-white/40">
-                        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
-                          <Play className="w-5 h-5" style={{ color: brandColors.primaryHex }} />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 bg-black/20">
+                        <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center transform scale-50 group-hover:scale-100 transition-all duration-300 border border-white/40">
+                          <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg">
+                            <Play className="w-5 h-5" style={{ color: brandColors.primaryHex }} />
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Duration Badge */}
-                    {video.duration && (
-                      <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-xs font-medium text-white flex items-center">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {video.duration}
-                      </div>
+                      {video.duration && (
+                        <div className="absolute bottom-3 right-3 px-2 py-1 bg-black/70 backdrop-blur-sm rounded text-xs font-medium text-white flex items-center">
+                          <Clock className="w-3 h-3 mr-1" />
+                          {video.duration}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-6">
+                  <div className="flex items-center space-x-2 mb-3">
+                    {video.category && (
+                      <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-md uppercase tracking-wide">
+                        {video.category}
+                      </span>
+                    )}
+                    {video.category && video.date && <span className="text-gray-400 text-xs">•</span>}
+                    {video.date && (
+                      <span className="text-gray-500 text-xs">{video.date}</span>
+                    )}
+                    {!video.date && (
+                      <span className="text-gray-500 text-xs">{t('landing.videos.recent', 'Recently Added')}</span>
                     )}
                   </div>
-                )}
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <div className="flex items-center space-x-2 mb-3">
-                  {video.category && (
-                    <span className="px-2 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-md uppercase tracking-wide">
-                      {video.category}
-                    </span>
-                  )}
-                  {video.category && <span className="text-gray-400 text-xs">•</span>}
-                    <span className="text-gray-500 text-xs">{video.date || 'Recently Added'}</span>
-                </div>
-                
+                  
                   <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2 transition-colors"
                     style={{ color: brandColors.primaryHex }}>
-                  {video.title || 'Untitled Video'}
-                </h3>
-                
-                <p className="text-gray-600 text-sm line-clamp-2 mb-4">
-                  {video.description || 'No description available.'}
-                </p>
-                
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden">
-                      <img
-                        loading="lazy"
-                        decoding="async"
-                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${index}`}
-                        alt="Author"
-                      />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">{video.author || 'EOTY Team'}</span>
-                  </div>
+                    {video.title || t('landing.videos.untitled', 'Untitled Video')}
+                  </h3>
                   
-                  <button 
-                    onClick={() => { setIsLoading(true); setPlayingVideoIndex(index); }}
-                    className="font-medium text-sm hover:underline"
-                    style={{ color: brandColors.primaryHex }}
-                  >
-                    {playingVideoIndex === index ? 'Playing...' : 'Watch Now'}
-                  </button>
+                  <p className="text-gray-600 text-sm line-clamp-2 mb-4">
+                    {video.description || t('landing.videos.empty_description', 'Details coming soon.')}
+                  </p>
+                  
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#1c2753] to-[#243065] text-white flex items-center justify-center text-xs font-semibold">
+                        {getInitials(video.author)}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">
+                        {video.author || t('landing.videos.default_author', 'EOTY Team')}
+                      </span>
+                    </div>
+                    
+                    <button 
+                      onClick={() => {
+                        setIsLoading(true);
+                        setPlayingVideoIndex(index);
+                      }}
+                      className="font-medium text-sm hover:underline"
+                      style={{ color: brandColors.primaryHex }}
+                    >
+                      {isPlaying ? t('landing.videos.playing', 'Playing...') : t('landing.videos.watch_now', 'Watch Now')}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+
           {videos.length === 0 && (
             <div className="col-span-full text-center py-12 bg-white rounded-2xl border border-dashed"
               style={{ borderColor: `${brandColors.primaryHex}33` }}>

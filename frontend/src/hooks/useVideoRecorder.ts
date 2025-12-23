@@ -458,15 +458,15 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
     }
   }, [options.resolution, options.frameRate]);
 
-  // NEW: Enhanced audio constraints
+  // NEW: Enhanced audio constraints - improved quality settings
   const getAudioConstraints = useCallback((deviceId?: string) => {
     if (!options.enableAudio) return false;
 
     return {
       deviceId: deviceId ? { exact: deviceId } : undefined,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
+      echoCancellation: false, // Disabled for better audio quality
+      noiseSuppression: false, // Disabled for better audio quality  
+      autoGainControl: false, // Disabled for better audio quality
       channelCount: 2,
       sampleRate: 48000
     };
@@ -475,6 +475,7 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
   // Task 3.6: Source loss detection and handling
   const handleSourceLoss = useCallback((sourceType: 'camera' | 'screen') => {
     console.warn(`Source lost: ${sourceType}`);
+    // ... rest of the code remains the same ...
     
     if (!isRecording) {
       return;
@@ -539,8 +540,8 @@ export const useVideoRecorder = (): UseVideoRecorderReturn => {
             cursor: 'always'
           } as MediaTrackConstraints,
           audio: options.enableAudio ? {
-            echoCancellation: true,
-            noiseSuppression: true,
+            echoCancellation: true, // Enabled for better audio quality
+            noiseSuppression: true, // Enabled for better audio quality
             sampleRate: 44100
           } : false
         });

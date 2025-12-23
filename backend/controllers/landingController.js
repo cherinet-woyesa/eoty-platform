@@ -1,5 +1,59 @@
 const db = require('../config/database');
 
+const normalizeLocale = (value = 'en') => String(value || 'en').toLowerCase().slice(0, 10);
+const parseContentJson = (value) => {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    console.error('Failed to parse landing_page_content JSON:', error);
+    return {};
+  }
+};
+const extractCourseIds = (section) => {
+  if (!section) return [];
+  if (Array.isArray(section)) return section;
+  if (Array.isArray(section.courseIds)) return section.courseIds;
+  if (Array.isArray(section.courses)) {
+    return section.courses.map((course) => {
+      if (typeof course === 'number' || typeof course === 'string') {
+        return course;
+      }
+      return course?.id ?? course?.courseId;
+    });
+  }
+  return [];
+};
+const selectCourseColumns = () => [
+  'c.id',
+  'c.title',
+  'c.description',
+  'c.cover_image',
+  'c.category',
+  db.raw('COALESCE(cs.enrollment_count, 0) as student_count'),
+  db.raw('COALESCE(cs.average_rating, 0) as rating'),
+  db.raw('COALESCE(cs.rating_count, 0) as rating_count'),
+  db.raw("COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), 'EOTY Instructor') as instructor_name")
+];
+const buildCourseQuery = () =>
+  db('courses as c')
+    .leftJoin('course_stats as cs', 'c.id', 'cs.course_id')
+    .leftJoin('users as u', 'c.created_by', 'u.id')
+    .where('c.is_published', true)
+    .select(selectCourseColumns());
+const formatCourseResponse = (course) => ({
+  id: course.id,
+  title: course.title,
+  description: course.description,
+  coverImage: course.cover_image,
+  category: course.category,
+  studentCount: parseInt(course.student_count || 0, 10),
+  rating: parseFloat(course.rating || 0),
+  ratingCount: parseInt(course.rating_count || 0, 10),
+  instructor: course.instructor_name
+});
+
 const landingController = {
   // Get public landing page statistics
   async getStats(req, res) {
@@ -59,69 +113,102 @@ const landingController = {
   // Get featured courses for landing page
   async getFeaturedCourses(req, res) {
     try {
-      // 1. Get manually featured courses
-      const manualFeatured = await db('courses as c')
-        .leftJoin('course_stats as cs', 'c.id', 'cs.course_id')
-        .leftJoin('users as u', 'c.created_by', 'u.id')
-        .where('c.is_published', true)
-        .andWhere('c.is_featured', true)
-        .select(
-          'c.id',
-          'c.title',
-          'c.description',
-          'c.cover_image',
-          'c.category',
-          db.raw('COALESCE(cs.enrollment_count, 0) as student_count'),
-          db.raw('COALESCE(cs.average_rating, 0) as rating'),
-          db.raw('COALESCE(cs.rating_count, 0) as rating_count'),
-          db.raw("CONCAT(u.first_name, ' ', u.last_name) as instructor_name")
-        );
+      const locale = normalizeLocale(req.query.locale);
+      let curatedCourseIds = [];
 
-      let featuredCourses = [...manualFeatured];
+      try {
+        let contentRow;
+        try {
+          contentRow = await db('landing_page_content')
+            .where({ is_active: true, locale })
+            .first();
+        } catch (localeQueryError) {
+          console.warn('Locale-aware landing content lookup failed, retrying without locale filter:', localeQueryError.message || localeQueryError);
+          contentRow = await db('landing_page_content')
+            .where({ is_active: true })
+            .first();
+        }
 
-      // 2. If we have fewer than 4, fill with popular courses
-      if (featuredCourses.length < 4) {
-        const limit = 4 - featuredCourses.length;
-        const existingIds = featuredCourses.map(c => c.id);
+        if (!contentRow && locale !== 'en') {
+          contentRow = await db('landing_page_content')
+            .where({ is_active: true, locale: 'en' })
+            .first();
+        }
 
-        const popularCourses = await db('courses as c')
-          .leftJoin('course_stats as cs', 'c.id', 'cs.course_id')
-          .leftJoin('users as u', 'c.created_by', 'u.id')
-          .where('c.is_published', true)
-          .whereNotIn('c.id', existingIds)
-          .orderBy('cs.enrollment_count', 'desc')
-          .orderBy('cs.average_rating', 'desc')
-          .limit(limit)
-          .select(
-            'c.id',
-            'c.title',
-            'c.description',
-            'c.cover_image',
-            'c.category',
-            db.raw('COALESCE(cs.enrollment_count, 0) as student_count'),
-            db.raw('COALESCE(cs.average_rating, 0) as rating'),
-            db.raw('COALESCE(cs.rating_count, 0) as rating_count'),
-            db.raw("CONCAT(u.first_name, ' ', u.last_name) as instructor_name")
-          );
-        
-        featuredCourses = [...featuredCourses, ...popularCourses];
+        if (!contentRow) {
+          contentRow = await db('landing_page_content')
+            .where({ is_active: true })
+            .orderBy('updated_at', 'desc')
+            .first();
+        }
+
+        if (contentRow) {
+          const contentJson = parseContentJson(contentRow.content_json);
+          const featuredSection = contentJson['featured-courses'] || contentJson.featuredCourses || {};
+          curatedCourseIds = extractCourseIds(featuredSection)
+            .map((id) => parseInt(id, 10))
+            .filter((id) => Number.isInteger(id) && id > 0);
+          curatedCourseIds = Array.from(new Set(curatedCourseIds));
+        }
+      } catch (contentError) {
+        console.warn('Failed to load curated featured courses:', contentError.message || contentError);
       }
 
-      // Return empty array if no courses found - don't fail
+      let featuredCourses = [];
+
+      if (curatedCourseIds.length) {
+        const curatedRows = await buildCourseQuery()
+          .whereIn('c.id', curatedCourseIds);
+        const courseMap = new Map();
+        curatedRows.forEach((row) => courseMap.set(row.id, row));
+        featuredCourses = curatedCourseIds
+          .map((id) => courseMap.get(id))
+          .filter(Boolean);
+      }
+
+      const seenCourseIds = new Set(featuredCourses.map((course) => course.id));
+
+      if (featuredCourses.length < 4) {
+        const manualFeatured = await buildCourseQuery()
+          .andWhere('c.is_featured', true)
+          .modify((qb) => {
+            if (seenCourseIds.size) {
+              qb.whereNotIn('c.id', Array.from(seenCourseIds));
+            }
+          });
+
+        manualFeatured.forEach((course) => {
+          if (!seenCourseIds.has(course.id)) {
+            featuredCourses.push(course);
+            seenCourseIds.add(course.id);
+          }
+        });
+      }
+
+      if (featuredCourses.length < 4) {
+        const limit = 4 - featuredCourses.length;
+        const popularCourses = await buildCourseQuery()
+          .modify((qb) => {
+            if (seenCourseIds.size) {
+              qb.whereNotIn('c.id', Array.from(seenCourseIds));
+            }
+          })
+          .orderBy('cs.enrollment_count', 'desc')
+          .orderBy('cs.average_rating', 'desc')
+          .limit(limit);
+
+        popularCourses.forEach((course) => {
+          if (!seenCourseIds.has(course.id)) {
+            featuredCourses.push(course);
+            seenCourseIds.add(course.id);
+          }
+        });
+      }
+
       res.json({
         success: true,
         data: {
-          courses: featuredCourses.map(course => ({
-            id: course.id,
-            title: course.title,
-            description: course.description,
-            coverImage: course.cover_image,
-            category: course.category,
-            studentCount: parseInt(course.student_count || 0),
-            rating: parseFloat(course.rating || 0),
-            ratingCount: parseInt(course.rating_count || 0),
-            instructor: course.instructor_name
-          }))
+          courses: featuredCourses.map(formatCourseResponse)
         }
       });
     } catch (error) {

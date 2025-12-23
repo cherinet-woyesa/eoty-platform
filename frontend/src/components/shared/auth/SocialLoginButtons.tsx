@@ -4,6 +4,7 @@
  */
 
 import React, { memo, useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/context/AuthContext';
 import { authApi, apiClient } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
@@ -17,6 +18,7 @@ interface SocialLoginButtonsProps {
 const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'user', onRequires2FA }) => {
   const { handleOAuthLogin } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isFacebookLoading, setIsFacebookLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -291,7 +293,7 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
           onClick={handleGoogleLogin}
           disabled={isGoogleLoading}
           className="group relative w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:shadow-sm disabled:active:scale-100"
-          aria-label="Sign in with Google"
+          aria-label={t('auth.social.google_aria', 'Sign in with Google')}
         >
           <svg className="w-5 h-5 sm:mr-2 flex-shrink-0" viewBox="0 0 24 24" aria-hidden="true">
             <path
@@ -313,7 +315,9 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
           </svg>
           {/* Show text on tablet and desktop, hide on mobile */}
           <span className="hidden sm:inline">
-            {isGoogleLoading ? 'Connecting...' : 'Google'}
+            {isGoogleLoading
+              ? t('auth.social.connecting', 'Connecting...')
+              : t('auth.social.google', 'Google')}
           </span>
         </button>
 
@@ -323,13 +327,15 @@ const SocialLoginButtons: React.FC<SocialLoginButtonsProps> = memo(({ role = 'us
           onClick={handleFacebookLogin}
           disabled={isFacebookLoading}
           className="group relative w-full inline-flex justify-center items-center min-h-[44px] py-3 px-4 border-2 border-gray-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-blue-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:border-gray-200 disabled:hover:shadow-sm disabled:active:scale-100"
-          aria-label="Sign in with Facebook"
+          aria-label={t('auth.social.facebook_aria', 'Sign in with Facebook')}
         >
           <svg className="w-5 h-5 sm:mr-2 flex-shrink-0" fill="#1877F2" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
           </svg>
           <span className="hidden sm:inline">
-            {isFacebookLoading ? 'Connecting...' : 'Facebook'}
+            {isFacebookLoading
+              ? t('auth.social.connecting', 'Connecting...')
+              : t('auth.social.facebook', 'Facebook')}
           </span>
         </button>
 
